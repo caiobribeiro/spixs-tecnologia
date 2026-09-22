@@ -20,6 +20,9 @@ class HomeView extends StatefulWidget {
 class _HomeViewState extends State<HomeView> {
   final HomeViewmodel _viewmodel = getIt<HomeViewmodel>();
 
+  /// Evita navegar duas vezes para o formulário de endereços.
+  bool _navigatedToForm = false;
+
   @override
   void initState() {
     super.initState();
@@ -27,6 +30,23 @@ class _HomeViewState extends State<HomeView> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _viewmodel.authenticate();
     });
+    _viewmodel.isAuthenticated.addListener(_onAuthenticationChanged);
+  }
+
+  @override
+  void dispose() {
+    _viewmodel.isAuthenticated.removeListener(_onAuthenticationChanged);
+    super.dispose();
+  }
+
+  /// Após o login com `local_auth`, a navegação leva ao formulário de
+  /// endereços ([RoutesFormView]) em substituição à tela de bloqueio.
+  void _onAuthenticationChanged() {
+    if (!mounted || _navigatedToForm || !_viewmodel.isAuthenticated.value) {
+      return;
+    }
+    _navigatedToForm = true;
+    Navigator.of(context).pushReplacementNamed(AppRoute.form.path);
   }
 
   @override
@@ -35,7 +55,10 @@ class _HomeViewState extends State<HomeView> {
       valueListenable: _viewmodel.isAuthenticated,
       builder: (context, isAuthenticated, _) {
         if (isAuthenticated) {
-          return _buildHomeContent(context);
+          // A navegação para o formulário é disparada por
+          // [_onAuthenticationChanged]; este é apenas um fallback vazio
+          // durante a transição de rota.
+          return const Scaffold();
         }
         return AnimatedBuilder(
           animation: _viewmodel.authenticateCommand,
@@ -48,18 +71,6 @@ class _HomeViewState extends State<HomeView> {
           },
         );
       },
-    );
-  }
-
-  Widget _buildHomeContent(BuildContext context) {
-    return Scaffold(
-      body: const Center(child: Text('Home')),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.map),
-        onPressed: () {
-          Navigator.of(context).pushNamed(AppRoute.map.path);
-        },
-      ),
     );
   }
 }
