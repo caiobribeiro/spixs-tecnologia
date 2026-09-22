@@ -1,5 +1,8 @@
 import 'package:get_it/get_it.dart';
 
+import 'modules/core/theme/domain/app_theme.dart';
+import 'modules/core/theme/domain/repository/theme_repository.dart';
+import 'modules/core/theme/domain/repository/theme_repository_impl.dart';
 import 'modules/home/data/services/home_service.dart';
 import 'modules/home/domain/repository/home_repository.dart';
 import 'modules/home/domain/repository/home_repository_impl.dart';
@@ -16,6 +19,11 @@ final getIt = GetIt.instance;
 /// Services and repositories are lazy singletons: a single shared instance
 /// per dependency. ViewModels are factories: a fresh instance per screen.
 void setupDependencyInjection() {
+  // ---- Core: theme (single source of truth do tema) ----
+  getIt.registerLazySingleton<ThemeRepository>(
+    () => ThemeRepositoryImpl(AppTheme.build()),
+  );
+
   // ---- Home module ----
   getIt.registerLazySingleton<HomeService>(() => HomeService());
   getIt.registerLazySingleton<HomeRepository>(
