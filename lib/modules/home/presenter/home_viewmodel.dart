@@ -5,11 +5,6 @@ import '../../../../shared/patterns/result.dart';
 import '../domain/entity/home_summary_entity.dart';
 import '../domain/repository/home_repository.dart';
 
-/// Manages the state and logic of the home screen.
-///
-/// Exposes [Command]s to perform actions and reads data through the
-/// [HomeRepository] contract. It never depends on the repository
-/// implementation directly.
 class HomeViewmodel extends ChangeNotifier {
   HomeViewmodel(this._repository);
 
