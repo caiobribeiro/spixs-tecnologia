@@ -1,17 +1,22 @@
 # spixs_tecnologia
 
-A new Flutter project.
+Este é a resolução desafio técnico proposto por Spixs_Tecnologia.
+Spixs_Tecnologia: Simulação de um app de entrega/roteirização com bloqueio de segurança, mapa,
+autocomplete de endereços e navegação com recálculo dinâmico de rota.
 
-## Getting Started
+## Arquitetura
+A [arquitetura](https://docs.flutter.dev/app-architecture) usada é a sugerida pela Google, mais detalhes em [Implementer Agent](.pi/agents/implementer_agent.md)
 
-This project is a starting point for a Flutter application.
+## Packages
 
-A few resources to get you started if this is your first Flutter project:
+Os packages usados no projeto.
+Gerenciamento de estado foi feito todo nativo.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- [Google Maps Flutter](https://pub.dev/packages/google_maps_flutter/install)
+- [Local Auth](https://pub.dev/packages/local_auth)
+- [Get It](https://pub.dev/packages/get_it)
+- [Connectivity Plus](https://pub.dev/packages/connectivity_plus)
+- [Flutter_ Polyline Points](https://pub.dev/packages/flutter_polyline_points)
+- [Dio](https://pub.dev/packages/dio)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+
