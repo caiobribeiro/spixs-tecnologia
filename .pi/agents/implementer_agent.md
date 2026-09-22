@@ -312,6 +312,39 @@ ViewModel or repository into a reusable widget, or make the widget fetch its own
 data. Those choices blur the View/widget boundary, hide ownership, and make the
 component impossible to reuse or test independently.
 
+#### Navigation
+
+Each module must define and expose its own routes.
+The App Routes must import and register the routes from every module.
+
+
+```dart
+import 'package:flutter/material.dart';
+
+enum AppRoute { home, map }
+
+extension AppRouteExtension on AppRoute {
+  String get path {
+    switch (this) {
+      case AppRoute.home:
+        return '/';
+      case AppRoute.map:
+        return '/map';
+    }
+  }
+}
+
+Route<AppRoute> onGenerateAppRoute(AppRoute settings) {
+  switch (settings) {
+    case AppRoute.home:
+      return MaterialPageRoute(builder: (context) => HomeView());
+    case AppRoute.map:
+      return MaterialPageRoute(builder: (context) => MapView());
+  }
+}
+
+```
+
 ---
 
 
