@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Autenticação nativa (local_auth): biometria (API 28+) e fallback
+         para dispositivos mais antigos (USE_FINGERPRINT). -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
     <application
         android:label="spixs_tecnologia"
         android:name="${applicationName}"
