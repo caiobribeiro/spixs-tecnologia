@@ -1,5 +1,8 @@
 import 'package:get_it/get_it.dart';
 
+import 'modules/core/auth/data/services/auth_service.dart';
+import 'modules/core/auth/domain/repository/auth_repository.dart';
+import 'modules/core/auth/domain/repository/auth_repository_impl.dart';
 import 'modules/core/theme/domain/app_theme.dart';
 import 'modules/core/theme/domain/repository/theme_repository.dart';
 import 'modules/core/theme/domain/repository/theme_repository_impl.dart';
@@ -19,6 +22,12 @@ final getIt = GetIt.instance;
 /// Services and repositories are lazy singletons: a single shared instance
 /// per dependency. ViewModels are factories: a fresh instance per screen.
 void setupDependencyInjection() {
+  // ---- Core: auth (gate de autenticação nativa) ----
+  getIt.registerLazySingleton<AuthService>(() => AuthService());
+  getIt.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(getIt<AuthService>()),
+  );
+
   // ---- Core: theme (single source of truth do tema) ----
   getIt.registerLazySingleton<ThemeRepository>(
     () => ThemeRepositoryImpl(AppTheme.build()),
@@ -30,7 +39,10 @@ void setupDependencyInjection() {
     () => HomeRepositoryImpl(getIt<HomeService>()),
   );
   getIt.registerFactory<HomeViewmodel>(
-    () => HomeViewmodel(getIt<HomeRepository>()),
+    () => HomeViewmodel(
+      getIt<HomeRepository>(),
+      getIt<AuthRepository>(),
+    ),
   );
 
   // ---- Map module ----
