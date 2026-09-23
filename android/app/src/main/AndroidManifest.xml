@@ -6,6 +6,10 @@
     <!-- Autocomplete de endereços (Google Places API) em release.
          Nos builds debug/profile a permissão já existe via manifest próprio. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Localização (GPS) do usuário: centraliza o mapa e define o ponto de
+         partida. Tanto a precisão aproximada quanto a fina são pedidas. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <application
         android:label="spixs_tecnologia"
         android:name="${applicationName}"
@@ -37,6 +41,12 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Chave do Google Maps Android SDK. Injetada em tempo de build via
+             dart-define GOOGLE_MAPS_API_KEY (ver README.md e
+             android/app/build.gradle.kts, que decodifica os dart-defines). -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${GOOGLE_MAPS_API_KEY}" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
