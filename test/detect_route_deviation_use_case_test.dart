@@ -14,10 +14,10 @@ void main() {
   // 0.0009° de latitude ≈ 100m (distância aproximada usada nos testes).
   const origin = GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
   const onRoute = GeoPointEntity(latitude: -23.5505, longitude: -46.6334);
-  // ~222m ao norte do origin — além do threshold padrão (150m).
+  // ~222m ao norte do origin — além do threshold padrão (50m).
   const deviated = GeoPointEntity(latitude: -23.5485, longitude: -46.6333);
-  // ~55m ao norte do origin — dentro do threshold padrão.
-  const nearRoute = GeoPointEntity(latitude: -23.5500, longitude: -46.6333);
+  // ~44m ao norte do origin — dentro do threshold padrão (50m).
+  const nearRoute = GeoPointEntity(latitude: -23.5501, longitude: -46.6333);
 
   group('DetectRouteDeviationUseCase', () {
     test('posição sobre o próprio caminho não é desvio', () {
