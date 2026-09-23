@@ -6,12 +6,13 @@ import '../../../../shared/patterns/result.dart';
 import '../models/geo_point_model.dart';
 import '../models/place_model.dart';
 import '../models/route_model.dart';
+import '../models/route_waypoint_model.dart';
 
 /// Map module data source.
 ///
-/// Communicates with the Google Directions API via [Dio], decodes the
-/// returned polyline with `flutter_polyline_points` and returns [Result]s
-/// encapsulating success or failure.
+/// Communicates with the Google **Routes API** (`computeRoutes`, v2) via
+/// [Dio], decodes the returned polyline with `flutter_polyline_points` and
+/// returns [Result]s encapsulating success or failure.
 class MapService {
   MapService({
     Dio? dio,
@@ -19,8 +20,17 @@ class MapService {
   })  : _dio = dio ?? Dio(),
         _apiKey = apiKey ?? AppConfig.googleMapsApiKey;
 
-  static const String _directionsUrl =
-      'https://maps.googleapis.com/maps/api/directions/json';
+  /// Endpoint de rotas otimizadas da Google Routes API (v2).
+  static const String _computeRoutesUrl =
+      'https://routes.googleapis.com/directions/v2:computeRoutes';
+
+  /// Field mask obrigatória da Routes API — sem ela a API responde 400.
+  ///
+  /// Pede as informações que a tela do mapa consome: totais, geometria
+  /// (polyline), legs (waypoints resolvidos) e a ordem otimizada.
+  static const String _fieldMask =
+      'routes.distanceMeters,routes.duration,routes.polyline,'
+      'routes.legs,routes.optimizedIntermediateWaypointIndex';
 
   final Dio _dio;
   final String _apiKey;
@@ -49,12 +59,15 @@ class MapService {
     }
   }
 
-  /// Requests a route between [origin] and [destination] from the Google
-  /// Directions API and decodes the overview polyline.
-  Future<Result<RouteModel>> getRoute({
-    required GeoPointModel origin,
-    required GeoPointModel destination,
-  }) async {
+  /// Computes a route that visits [addresses] in order, asking the Routes
+  /// API to **optimize the intermediate waypoints**
+  /// (`optimizeWaypointOrder: true`).
+  ///
+  /// The first address is the origin, the last is the destination and the
+  /// ones in between are intermediates. The returned [RouteModel] carries
+  /// the waypoints already in the order the route visits them, the decoded
+  /// polyline and the route totals, ready for the map screen.
+  Future<Result<RouteModel>> computeRoute(List<String> addresses) async {
     // Fail fast: chave ausente produziria REQUEST_DENIED opaco da API.
     if (_apiKey.isEmpty) {
       return Result.error(
@@ -65,19 +78,36 @@ class MapService {
         ),
       );
     }
+    if (addresses.length < 2) {
+      return Result.error(
+        Exception('A rota precisa de origem e destino (mínimo 2 endereços).'),
+      );
+    }
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        _directionsUrl,
-        queryParameters: <String, dynamic>{
-          'origin': '${origin.latitude},${origin.longitude}',
-          'destination': '${destination.latitude},${destination.longitude}',
-          'key': _apiKey,
+      final response = await _dio.post<Map<String, dynamic>>(
+        _computeRoutesUrl,
+        options: Options(
+          headers: <String, dynamic>{
+            'X-Goog-Api-Key': _apiKey,
+            'X-Goog-FieldMask': _fieldMask,
+            Headers.contentTypeHeader: Headers.jsonContentType,
+          },
+        ),
+        data: <String, dynamic>{
+          'origin': <String, dynamic>{'address': addresses.first},
+          'destination': <String, dynamic>{'address': addresses.last},
+          'intermediates': <Map<String, dynamic>>[
+            for (final address in addresses.sublist(1, addresses.length - 1))
+              <String, dynamic>{'address': address},
+          ],
+          'travelMode': 'DRIVE',
+          'optimizeWaypointOrder': true,
         },
       );
 
       final data = response.data;
       if (data == null) {
-        return Result.error(Exception('Empty directions response'));
+        return Result.error(Exception('Empty routes response'));
       }
 
       final routes = data['routes'] as List<dynamic>? ?? const <dynamic>[];
@@ -87,10 +117,9 @@ class MapService {
 
       final firstRoute = routes.first as Map<String, dynamic>;
       final overviewPolyline =
-          (firstRoute['overview_polyline'] as Map<String, dynamic>?)?['points']
-                  as String? ??
+          ((firstRoute['polyline'] as Map<String, dynamic>?)?['encodedPolyline']
+                  as String?) ??
               '';
-
       final decodedPoints = PolylinePoints.decodePolyline(overviewPolyline)
           .map(
             (point) => GeoPointModel(
@@ -100,25 +129,19 @@ class MapService {
           )
           .toList();
 
-      final legs = firstRoute['legs'] as List<dynamic>? ?? const <dynamic>[];
-      final firstLeg =
-          legs.isEmpty ? null : (legs.first as Map<String, dynamic>);
-      final distanceMeters =
-          ((firstLeg?['distance'] as Map<String, dynamic>?)?['value'] as num?)
-                  ?.toDouble() ??
-              0;
-      final durationSeconds =
-          ((firstLeg?['duration'] as Map<String, dynamic>?)?['value'] as num?)
-                  ?.toInt() ??
-              0;
-
       return Result.ok(
         RouteModel(
-          origin: origin,
-          destination: destination,
+          waypoints: _orderedWaypoints(firstRoute, addresses),
           polylinePoints: decodedPoints,
-          distanceMeters: distanceMeters,
-          durationSeconds: durationSeconds,
+          distanceMeters:
+              (firstRoute['distanceMeters'] as num?)?.toDouble() ?? 0,
+          durationSeconds: _parseDurationSeconds(firstRoute['duration']),
+          optimizedIntermediateWaypointIndex:
+              (firstRoute['optimizedIntermediateWaypointIndex']
+                          as List<dynamic>?)
+                      ?.map((index) => (index as num).toInt())
+                      .toList() ??
+                  const <int>[],
         ),
       );
     } on DioException catch (error) {
@@ -126,5 +149,88 @@ class MapService {
     } on Exception catch (error) {
       return Result.error(error);
     }
+  }
+
+  /// Waypoints na ordem em que a rota os visita, derivados das `legs` da
+  /// resposta: cada leg começa no waypoint *i* e termina no waypoint *i+1*
+  /// — já na ordem otimizada aplicada pela API
+  /// (`optimizeWaypointOrder: true`).
+  List<RouteWaypointModel> _orderedWaypoints(
+    Map<String, dynamic> route,
+    List<String> requested,
+  ) {
+    final legs = route['legs'] as List<dynamic>? ?? const <dynamic>[];
+    if (legs.isEmpty) {
+      // Resposta sem legs: mantém a ordem solicitada no formulário.
+      return [
+        for (final address in requested)
+          RouteWaypointModel(
+            address: address,
+            location: const GeoPointModel(latitude: 0, longitude: 0),
+          ),
+      ];
+    }
+
+    final waypoints = <RouteWaypointModel>[];
+    for (var i = 0; i < legs.length; i++) {
+      final leg = legs[i] as Map<String, dynamic>;
+      final fallbackStart = i < requested.length ? requested[i] : '';
+      waypoints.add(
+        _legEndpoint(leg, start: true, fallbackAddress: fallbackStart),
+      );
+      if (i == legs.length - 1) {
+        final fallbackEnd =
+            i + 1 < requested.length ? requested[i + 1] : requested.last;
+        waypoints.add(
+          _legEndpoint(leg, start: false, fallbackAddress: fallbackEnd),
+        );
+      }
+    }
+    return waypoints;
+  }
+
+  /// Extrai endereço + localização de uma ponta (início ou fim) de uma leg.
+  RouteWaypointModel _legEndpoint(
+    Map<String, dynamic> leg, {
+    required bool start,
+    required String fallbackAddress,
+  }) {
+    final locationField = start ? 'startLocation' : 'endLocation';
+    final addressField = start ? 'startAddress' : 'endAddress';
+
+    final resolvedAddress = leg[addressField] as String?;
+    final latLng =
+        (leg[locationField] as Map<String, dynamic>?)?['latLng']
+            as Map<String, dynamic>?;
+
+    return RouteWaypointModel(
+      address: (resolvedAddress?.trim().isNotEmpty ?? false)
+          ? resolvedAddress!
+          : fallbackAddress,
+      location: GeoPointModel(
+        latitude: (latLng?['latitude'] as num?)?.toDouble() ?? 0,
+        longitude: (latLng?['longitude'] as num?)?.toDouble() ?? 0,
+      ),
+    );
+  }
+
+  /// Converte uma duração da Routes API para segundos: formato curto
+  /// ("1628s") ou ISO-8601 ("PT27M8S" / "PT1H5M30S").
+  static int _parseDurationSeconds(dynamic duration) {
+    if (duration is! String || duration.isEmpty) {
+      return 0;
+    }
+
+    final iso = RegExp(r'^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+(?:\.\d+)?)S)?$');
+    final isoMatch = iso.firstMatch(duration);
+    if (isoMatch != null) {
+      final hours = int.tryParse(isoMatch.group(1) ?? '') ?? 0;
+      final minutes = int.tryParse(isoMatch.group(2) ?? '') ?? 0;
+      final seconds = (double.tryParse(isoMatch.group(3) ?? '0') ?? 0).round();
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    final short = RegExp(r'^(\d+)s$').firstMatch(duration);
+    return int.tryParse(short?.group(1) ?? '0') ?? 0;
   }
 }
