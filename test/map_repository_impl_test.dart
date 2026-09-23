@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spixs_tecnologia/modules/map/data/models/geo_point_model.dart';
 import 'package:spixs_tecnologia/modules/map/data/models/route_model.dart';
 import 'package:spixs_tecnologia/modules/map/data/models/route_waypoint_model.dart';
+import 'package:spixs_tecnologia/modules/map/data/services/geocoding_service.dart';
 import 'package:spixs_tecnologia/modules/map/data/services/map_service.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/geo_point_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_entity.dart';
@@ -28,6 +29,27 @@ class _FakeMapService extends MapService {
     GeoPointModel? origin,
   }) {
     return _handler(addresses, origin: origin);
+  }
+}
+
+/// Fake do geocoding: responde com coordenadas pré-determinadas por
+/// endereço (ou erro, quando o endereço não está no mapa).
+class _FakeGeocodingService extends GeocodingService {
+  _FakeGeocodingService([this._coordinates = const {}]) : super(apiKey: '');
+
+  final Map<String, GeoPointModel> _coordinates;
+
+  /// Endereços consultados, na ordem das chamadas (assert dos testes).
+  final List<String> geocodedAddresses = [];
+
+  @override
+  Future<Result<GeoPointModel>> geocodeAddress(String address) async {
+    geocodedAddresses.add(address);
+    final location = _coordinates[address];
+    if (location == null) {
+      return Result.error(Exception('Endereço não encontrado: $address'));
+    }
+    return Result.ok(location);
   }
 }
 
@@ -57,6 +79,7 @@ void main() {
           receivedAddresses = addresses;
           return Result.ok(_model);
         }),
+        _FakeGeocodingService(),
       );
 
       final result = await repository.computeRoute(
@@ -84,6 +107,7 @@ void main() {
       final failure = Exception('Places API error: REQUEST_DENIED');
       final repository = MapRepositoryImpl(
         _FakeMapService((addresses, {origin}) async => Result.error(failure)),
+        _FakeGeocodingService(),
       );
 
       final result = await repository.computeRoute(
@@ -101,6 +125,7 @@ void main() {
     test('SSOT mantém a última rota após sucesso seguido de erro', () async {
       final repository = MapRepositoryImpl(
         _FakeMapService((addresses, {origin}) async => Result.ok(_model)),
+        _FakeGeocodingService(),
       );
       await repository.computeRoute(
         const RouteRequestEntity(addresses: ['Av. A', 'Av. D']),
@@ -111,6 +136,7 @@ void main() {
       // O próximo repositório usa um service que agora falha.
       final failingRepository = MapRepositoryImpl(
         _FakeMapService((addresses, {origin}) async => Result.error(Exception('boom'))),
+        _FakeGeocodingService(),
       );
       final result = await failingRepository.computeRoute(
         const RouteRequestEntity(addresses: ['Av. A', 'Av. D']),
@@ -139,6 +165,14 @@ void main() {
             ),
           );
         }),
+        // Coordenadas para o geocoding dos endereços da requisição.
+        _FakeGeocodingService(
+          const <String, GeoPointModel>{
+            'Av. A': GeoPointModel(latitude: -23.5510, longitude: -46.6340),
+            'Rua B': GeoPointModel(latitude: -23.5520, longitude: -46.6350),
+            'Av. D': GeoPointModel(latitude: -23.5530, longitude: -46.6360),
+          },
+        ),
       );
       const userLocation = GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
 
@@ -162,6 +196,88 @@ void main() {
         case Error<RouteEntity>():
           fail('esperava Ok, recebi erro: ${result.error}');
       }
+    });
+
+    test(
+        'com origem, ordena os endereços do mais próximo ao mais distante '
+        'do usuário (destino = mais distante)', () async {
+      const userLocation =
+          GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
+      List<String>? receivedAddresses;
+      final repository = MapRepositoryImpl(
+        _FakeMapService((addresses, {origin}) async {
+          receivedAddresses = addresses;
+          return Result.ok(_model);
+        }),
+        _FakeGeocodingService(
+          const <String, GeoPointModel>{
+            // Digitados fora de ordem: o mais distante primeiro.
+            'Av. A': GeoPointModel(latitude: -23.5510, longitude: -46.6340),
+            'Rua B': GeoPointModel(latitude: -23.5520, longitude: -46.6350),
+            'Av. D': GeoPointModel(latitude: -23.5530, longitude: -46.6360),
+          },
+        ),
+      );
+
+      final result = await repository.computeRoute(
+        const RouteRequestEntity(
+          addresses: ['Av. D', 'Av. A', 'Rua B'],
+          origin: userLocation,
+        ),
+      );
+
+      // Verificação de distância aplicada: mais próximo → mais distante,
+      // com o mais distante ('Av. D') como destino final (último).
+      expect(result, isA<Ok<RouteEntity>>());
+      expect(receivedAddresses, orderedEquals(['Av. A', 'Rua B', 'Av. D']));
+    });
+
+    test('sem origem, mantém a ordem digitada (sem verificação de distância)',
+        () async {
+      List<String>? receivedAddresses;
+      final geocoding = _FakeGeocodingService();
+      final repository = MapRepositoryImpl(
+        _FakeMapService((addresses, {origin}) async {
+          receivedAddresses = addresses;
+          return Result.ok(_model);
+        }),
+        geocoding,
+      );
+
+      final result = await repository.computeRoute(
+        const RouteRequestEntity(addresses: ['Av. A', 'Av. D']),
+      );
+
+      expect(result, isA<Ok<RouteEntity>>());
+      expect(receivedAddresses, orderedEquals(['Av. A', 'Av. D']));
+      expect(geocoding.geocodedAddresses, isEmpty);
+    });
+
+    test('falha do geocoding propaga o erro e não atualiza a SSOT', () async {
+      var computeCalls = 0;
+      final repository = MapRepositoryImpl(
+        _FakeMapService((addresses, {origin}) async {
+          computeCalls++;
+          return Result.ok(_model);
+        }),
+        // 'Rua B' sem coordenadas → geocoding falha.
+        _FakeGeocodingService(
+          const <String, GeoPointModel>{
+            'Av. A': GeoPointModel(latitude: -23.5510, longitude: -46.6340),
+          },
+        ),
+      );
+
+      final result = await repository.computeRoute(
+        const RouteRequestEntity(
+          addresses: ['Av. A', 'Rua B', 'Av. D'],
+          origin: GeoPointEntity(latitude: -23.5505, longitude: -46.6333),
+        ),
+      );
+
+      expect(result, isA<Error<RouteEntity>>());
+      expect(computeCalls, 0);
+      expect(repository.route.value, isNull);
     });
   });
 }
