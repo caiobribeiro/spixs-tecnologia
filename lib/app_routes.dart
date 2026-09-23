@@ -9,6 +9,7 @@ import 'modules/map/presenter/map_routes.dart';
 /// files own their route paths and builders; this file only wires them.
 enum AppRoute {
   home,
+  form,
   map;
 
   /// Route path for the given [AppRoute], resolved through its module.
@@ -16,6 +17,8 @@ enum AppRoute {
     switch (this) {
       case AppRoute.home:
         return HomeRoute.home.path;
+      case AppRoute.form:
+        return HomeRoute.form.path;
       case AppRoute.map:
         return MapRoute.map.path;
     }
@@ -28,6 +31,8 @@ abstract final class AppRoutes {
     switch (settings.name) {
       case '/':
         return buildHomeRoute(HomeRoute.home, settings: settings);
+      case '/form':
+        return buildHomeRoute(HomeRoute.form, settings: settings);
       case '/map':
         return buildMapRoute(MapRoute.map, settings: settings);
       default:

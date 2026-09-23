@@ -1,7 +1,6 @@
 // Testes do gate de autenticação nativa da home: o restante do app só é
 // exibido depois que a autenticação (biometria, senha ou PIN) é concluída.
 
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/app_dependency_injection.dart';
@@ -45,9 +44,11 @@ void main() {
     await tester.pumpWidget(const SpixsTecnologiaApp());
     await tester.pumpAndSettle();
 
-    // Gate liberado: home e navegação para o mapa visíveis.
-    expect(find.text('Home'), findsOneWidget);
-    expect(find.byIcon(Icons.map), findsOneWidget);
+    // Gate liberado: após o login com `local_auth`, a navegação leva ao
+    // formulário de endereços (tela com os 3 pontos A/B/C).
+    expect(find.text('Para onde vamos?'), findsOneWidget);
+    expect(find.text('Adicionar ponto'), findsOneWidget);
+    expect(find.text('Confirmar rota'), findsOneWidget);
     expect(find.text('Desbloquear'), findsNothing);
   });
 }
