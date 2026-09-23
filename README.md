@@ -13,6 +13,7 @@ Os packages usados no projeto.
 Gerenciamento de estado foi feito todo nativo.
 
 - [Google Maps Flutter](https://pub.dev/packages/google_maps_flutter/install)
+- [Geolocator](https://pub.dev/packages/geolocator) — permissão de localização e status do GPS
 - [Local Auth](https://pub.dev/packages/local_auth)
 - [Get It](https://pub.dev/packages/get_it)
 - [Connectivity Plus](https://pub.dev/packages/connectivity_plus)
