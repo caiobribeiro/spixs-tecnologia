@@ -13,6 +13,7 @@ import '../../domain/entity/route_request_entity.dart';
 import '../../domain/location_access_failure.dart';
 import '../../domain/repository/location_repository.dart';
 import '../../domain/repository/map_repository.dart';
+import '../../domain/usecases/detect_route_completion_use_case.dart';
 import '../../domain/usecases/detect_route_deviation_use_case.dart';
 import '../../domain/usecases/find_unvisited_stops_use_case.dart';
 import '../../domain/usecases/numbered_marker_use_case.dart';
@@ -36,6 +37,10 @@ import '../../domain/usecases/trim_route_path_use_case.dart';
 /// visitadas ([FindUnvisitedStopsUseCase]), com a nova ordem entre elas
 /// reotimizada (regra padrão do repositório) — e a UI é avisada pelo
 /// [routeRecalculationCount] para mostrar o banner "Rota recalculada".
+/// quando o usuário chega ao **fim da polyline** (destino final,
+/// [DetectRouteCompletionUseCase]), [routeFinished] fica verdadeiro: a UI
+/// mostra a conclusão da rota com o botão para voltar ao formulário de
+/// rotas limpando o estado preenchido.
 class MapViewmodel extends ChangeNotifier {
   MapViewmodel(
     this._repository,
@@ -44,6 +49,7 @@ class MapViewmodel extends ChangeNotifier {
     this._markerIcons,
     this._detectRouteDeviation,
     this._findUnvisitedStops,
+    this._detectRouteCompletion,
   );
 
   final MapRepository _repository;
@@ -52,6 +58,7 @@ class MapViewmodel extends ChangeNotifier {
   final NumberedMarkerUseCase _markerIcons;
   final DetectRouteDeviationUseCase _detectRouteDeviation;
   final FindUnvisitedStopsUseCase _findUnvisitedStops;
+  final DetectRouteCompletionUseCase _detectRouteCompletion;
 
   /// Endereços do formulário de rotas (A, B, C...), repassados na navegação
   /// para a tela do mapa e consumidos na entrada.
@@ -75,6 +82,11 @@ class MapViewmodel extends ChangeNotifier {
   /// (desvio de rota detectado). A UI mostra o banner "Rota recalculada"
   /// sempre que este contador for maior que zero.
   final ValueNotifier<int> routeRecalculationCount = ValueNotifier<int>(0);
+
+  /// Indica que o usuário **fez todo o trajeto** e chegou ao fim da
+  /// polyline (destino final): a navegação está concluída e a UI mostra a
+  /// ação de voltar ao formulário de rotas, limpando o estado do form.
+  final ValueNotifier<bool> routeFinished = ValueNotifier<bool>(false);
 
   /// Índices das paradas **já visitadas** durante a navegação atual
   /// (relativos às paradas da rota, sem a origem do usuário). Acumulado a
@@ -241,8 +253,9 @@ class MapViewmodel extends ChangeNotifier {
   /// Reage às atualizações contínuas de GPS durante a navegação: verifica se
   /// o usuário se desviou da rota (distância até o trecho à frente acima do
   /// threshold) e, quando isso acontece, dispara o recálculo automático.
+  /// Com a rota já concluída ([routeFinished]) nada mais é processado.
   void _onPositionChanged() {
-    if (!navigating.value) {
+    if (!navigating.value || routeFinished.value) {
       return;
     }
     final route = _repository.route.value;
@@ -254,6 +267,16 @@ class MapViewmodel extends ChangeNotifier {
     // Registra as paradas alcançadas (acumulado) para o recálculo
     // considerar apenas o que ainda falta visitar.
     _trackVisitedStops(position);
+
+    // Rota concluída quando o usuário chega ao fim da polyline (o destino
+    // final da rota): para de processar GPS e a UI mostra o fim do trajeto.
+    if (_detectRouteCompletion.execute(
+      polylinePoints: route.polylinePoints,
+      position: position,
+    )) {
+      routeFinished.value = true;
+      return;
+    }
 
     // Geometria ainda à frente: usuário mais longe que o threshold dela
     // significa que saiu do caminho planejado.
@@ -328,6 +351,7 @@ class MapViewmodel extends ChangeNotifier {
       // A nova rota já contém as paradas restantes: o progresso de visita
       // recomeça do zero para ela.
       _visitedStopIndexes.clear();
+      routeFinished.value = false;
     }
   }
 
@@ -338,6 +362,7 @@ class MapViewmodel extends ChangeNotifier {
     locationStatus.dispose();
     navigating.dispose();
     routeRecalculationCount.dispose();
+    routeFinished.dispose();
     super.dispose();
   }
 }

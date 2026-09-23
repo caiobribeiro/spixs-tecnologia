@@ -206,6 +206,26 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
     ];
   }
 
+  /// Limpa o formulário voltando ao estado inicial: três campos A/B/C
+  /// vazios, sem sugestões nem buscas pendentes.
+  ///
+  /// Chamado ao voltar do mapa com o trajeto concluído — descarta os
+  /// endereços já usados e os pontos adicionados para o próximo trajeto.
+  void resetForm() {
+    _cancelPendingSearches();
+    _suggestions.clear();
+    // Descarta campos adicionados além do mínimo A/B/C.
+    while (_addressControllers.length > minimumAddresses) {
+      final controller = _addressControllers.removeLast();
+      controller.removeListener(_onAddressChanged);
+      controller.dispose();
+    }
+    for (final controller in _addressControllers) {
+      controller.clear();
+    }
+    notifyListeners();
+  }
+
   /// Reavalia o estado do botão enquanto o usuário digita nos campos.
   void _onAddressChanged() {
     notifyListeners();

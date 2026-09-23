@@ -112,10 +112,24 @@ class _RoutesFormViewState extends State<RoutesFormView> {
   /// Após confirmar, navega para o mapa repassando os endereços como
   /// argumentos: a rota em si é calculada na **entrada do mapa**, inserindo
   /// a localização do usuário como origem da requisição.
-  void _confirmRoute() {
+  ///
+  /// Quando o usuário volta do mapa com o trajeto concluído (resultado
+  /// `true`), o formulário é limpo ([RoutesFormViewmodel.resetForm]) para o
+  /// próximo trajeto.
+  Future<void> _confirmRoute() async {
     if (_formKey.currentState?.validate() ?? false) {
       final addresses = _viewmodel.collectAddresses();
-      Navigator.of(context).pushNamed(AppRoute.map.path, arguments: addresses);
+      // pushNamed sem tipo: as rotas do app são Route<void> — tipar como
+      // bool aqui quebraria o cast interno do Navigator (a rota é criada
+      // pelo onGenerateRoute, que devolve Route<void>). O resultado é
+      // comparado por valor (true = trajeto concluído).
+      final Object? routeFinished = await Navigator.of(context).pushNamed(
+        AppRoute.map.path,
+        arguments: addresses,
+      );
+      if (routeFinished == true) {
+        _viewmodel.resetForm();
+      }
     }
   }
 

@@ -11,6 +11,7 @@ import '../../domain/entity/geo_point_entity.dart';
 import '../../domain/entity/location_access_status.dart';
 import '../../domain/entity/route_entity.dart';
 import '../widgets/location_warning_card.dart';
+import '../widgets/route_finished_panel.dart';
 import '../widgets/route_recalculated_banner.dart';
 import '../widgets/start_navigation_button.dart';
 import 'map_viewmodel.dart';
@@ -254,6 +255,9 @@ class _MapViewState extends State<MapView> {
                         StartNavigationButton(
                           onPressed: _viewmodel.startNavigation,
                         ),
+                      // Por cima de todos: fim do trajeto (usuário chegou ao
+                      // destino final) com a ação de voltar ao formulário.
+                      _buildRouteFinishedOverlay(),
                     ],
                   );
                 },
@@ -262,6 +266,24 @@ class _MapViewState extends State<MapView> {
           );
         },
       ),
+    );
+  }
+
+  /// Overlay exibido quando o usuário **fez todo o trajeto** e chegou ao
+  /// fim da polyline (destino final): mostra a conclusão e o botão para
+  /// voltar ao formulário de rotas. O retorno sinaliza a conclusão com
+  /// `true` para o formulário limpar o estado preenchido.
+  Widget _buildRouteFinishedOverlay() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: _viewmodel.routeFinished,
+      builder: (context, finished, _) {
+        if (!finished) {
+          return const SizedBox.shrink();
+        }
+        return RouteFinishedPanel(
+          onGoBack: () => Navigator.of(context).pop(true),
+        );
+      },
     );
   }
 
