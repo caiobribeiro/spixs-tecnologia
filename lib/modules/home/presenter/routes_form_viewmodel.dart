@@ -1,6 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
 
+import '../../../app_dependency_injection.dart';
 import '../../../shared/mixins/validation_mixin.dart';
+import '../../../shared/patterns/result.dart';
+import '../domain/entity/place_suggestion_entity.dart';
+import '../domain/repository/places_repository.dart';
 
 /// Manages the state of the address form screen (`RoutesFormView`).
 ///
@@ -9,8 +15,15 @@ import '../../../shared/mixins/validation_mixin.dart';
 /// botão "Confirmar rota" a partir deles, seguindo o design system Rota:
 /// o botão só é habilitado depois que **todos** os endereços exibidos estão
 /// preenchidos (mínimo de [minimumAddresses] campos).
+///
+/// Também coordena o **autocomplete do Google Places**: para cada campo, as
+/// sugestões são buscadas em [searchDebounce] após a última tecla digitada
+/// e ficam disponíveis via [suggestionsFor].
 class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
-  RoutesFormViewmodel() {
+  RoutesFormViewmodel({
+    this._placesRepository,
+    this.searchDebounce = const Duration(milliseconds: 350),
+  }) {
     for (final controller in _addressControllers) {
       controller.addListener(_onAddressChanged);
     }
@@ -18,6 +31,26 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
 
   /// Quantidade mínima de endereços para habilitar a confirmação da rota.
   static const int minimumAddresses = 3;
+
+  /// Comprimento mínimo de texto para disparar a busca de sugestões.
+  static const int minAutocompleteQueryLength = 3;
+
+  /// Repositório de autocomplete; injetável nos testes.
+  ///
+  /// Resolvido via DI na primeira busca (padrão do time, ver implementer
+  /// agent) para não criar dependência no construtor.
+  PlacesRepository? _placesRepository;
+  PlacesRepository get _autocompleteRepository =>
+      _placesRepository ??= getIt<PlacesRepository>();
+
+  /// Tempo de espera após a última tecla antes de consultar a API.
+  final Duration searchDebounce;
+
+  /// Timers de debounce por índice de campo.
+  final Map<int, Timer> _debounceTimers = {};
+
+  /// Sugestões de endereço por índice de campo (estado transitório de UI).
+  final Map<int, List<PlaceSuggestionEntity>> _suggestions = {};
 
   /// Controllers dos campos de endereço (SSOT do formulário).
   ///
@@ -94,7 +127,69 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
     final controller = _addressControllers.removeAt(index);
     controller.removeListener(_onAddressChanged);
     controller.dispose();
+    // Os índices mudaram: descarta buscas e sugestões pendentes.
+    _cancelPendingSearches();
+    _suggestions.clear();
     notifyListeners();
+  }
+
+  /// Sugestões de autocomplete exibidas abaixo do campo [index].
+  List<PlaceSuggestionEntity> suggestionsFor(int index) =>
+      List.unmodifiable(_suggestions[index] ?? const []);
+
+  /// Handle chamado pelo campo [index] a cada tecla digitada pelo usuário.
+  ///
+  /// Consultas curtas não disparam busca; as demais são debounced em
+  /// [searchDebounce] — se o usuário continua digitando, o timer anterior
+  /// é cancelado e a API só é consultada após a pausa.
+  void onAddressChanged(int index, String value) {
+    _debounceTimers[index]?.cancel();
+
+    final query = value.trim();
+    if (query.length < minAutocompleteQueryLength) {
+      _suggestions.remove(index);
+      return;
+    }
+
+    _debounceTimers[index] = Timer(searchDebounce, () {
+      _loadSuggestions(index, query);
+    });
+  }
+
+  /// Preenche o campo [index] com a sugestão escolhida e fecha a lista.
+  void selectSuggestion(int index, PlaceSuggestionEntity suggestion) {
+    _debounceTimers[index]?.cancel();
+    _addressControllers[index].text = suggestion.description;
+    _suggestions.remove(index);
+    notifyListeners();
+  }
+
+  /// Consulta o repositório e armazena o resultado por campo.
+  Future<void> _loadSuggestions(int index, String query) async {
+    final result = await _autocompleteRepository.autocompleteAddress(query);
+
+    // O usuário pode ter continuado digitando enquanto a API respondia:
+    // só aplica se a consulta ainda for a atual do campo.
+    if (_addressControllers[index].text.trim() != query) {
+      return;
+    }
+
+    switch (result) {
+      case Ok<List<PlaceSuggestionEntity>>():
+        final suggestions = result.value;
+        _suggestions[index] = suggestions;
+      case Error<List<PlaceSuggestionEntity>>():
+        _suggestions.remove(index);
+    }
+    notifyListeners();
+  }
+
+  /// Cancela todos os timers de debounce pendentes.
+  void _cancelPendingSearches() {
+    for (final timer in _debounceTimers.values) {
+      timer.cancel();
+    }
+    _debounceTimers.clear();
   }
 
   /// Placeholder do botão "Confirmar rota".
@@ -112,6 +207,7 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
 
   @override
   void dispose() {
+    _cancelPendingSearches();
     for (final controller in _addressControllers) {
       controller.removeListener(_onAddressChanged);
       controller.dispose();

@@ -5,14 +5,16 @@ import '../../core/theme/domain/app_theme.dart';
 import '../../core/theme/domain/tokens/app_spacing.dart';
 import '../../core/theme/domain/tokens/app_typography.dart';
 import 'routes_form_viewmodel.dart';
+import 'widgets/address_autocomplete_field.dart';
 
 /// Form screen: "Para onde vamos?".
 ///
 /// Autocomplete de endereços do design system Rota: começa com os 3 pontos
 /// A/B/C ("Ponto A", "Ponto B", "Ponto C") e permite adicionar novos pontos
-/// idênticos — e remover os adicionados, mantendo o mínimo A/B/C. O botão
-/// **Confirmar rota** (radius-lg) só fica ativo depois que **todos** os
-/// endereços exibidos estão preenchidos.
+/// idênticos — e remover os adicionados, mantendo o mínimo A/B/C. Cada
+/// campo autocompleta o endereço digitado com o Google Places ([AddressAutocompleteField]).
+/// O botão **Confirmar rota** (radius-lg) só fica ativo depois que **todos**
+/// os endereços exibidos estão preenchidos.
 class RoutesFormView extends StatefulWidget {
   const RoutesFormView({super.key});
 
@@ -86,22 +88,20 @@ class _RoutesFormViewState extends State<RoutesFormView> {
     return [
       for (var index = 0; index < controllers.length; index++) ...[
         if (index > 0) const SizedBox(height: AppSpacing.space2),
-        TextFormField(
+        AddressAutocompleteField(
           controller: controllers[index],
-          autovalidateMode: AutovalidateMode.always,
           validator: _viewmodel.validateAddress,
-          decoration: InputDecoration(
-            // "Ponto A", "Ponto B", "Ponto C"... (endereço não preenchido).
-            hintText: 'Ponto ${_labelFor(index)}',
-            // Remove pontos adicionados; o mínimo A/B/C é fixo.
-            suffixIcon: _viewmodel.canRemoveAddressField
-                ? IconButton(
-                    icon: const Icon(Icons.close),
-                    tooltip: 'Remover ${_labelFor(index)}',
-                    onPressed: () => _viewmodel.removeAddressField(index),
-                  )
-                : null,
-          ),
+          hintText: 'Ponto ${_labelFor(index)}',
+          // Autocomplete: sugestões do Google Places para este campo.
+          suggestions: _viewmodel.suggestionsFor(index),
+          onChanged: (value) => _viewmodel.onAddressChanged(index, value),
+          onSelected: (suggestion) {
+            FocusScope.of(context).unfocus();
+            _viewmodel.selectSuggestion(index, suggestion);
+          },
+          // Remove pontos adicionados; o mínimo A/B/C é fixo.
+          removable: _viewmodel.canRemoveAddressField,
+          onRemove: () => _viewmodel.removeAddressField(index),
         ),
       ],
     ];
