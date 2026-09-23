@@ -95,6 +95,7 @@ class MapViewmodel extends ChangeNotifier {
     switch (result) {
       case Ok<GeoPointEntity>():
         locationStatus.value = LocationAccessStatus.ready;
+        _locationRepository.startLocationUpdates();
         return result;
       case Error<GeoPointEntity>():
         final error = result.error;
@@ -109,5 +110,12 @@ class MapViewmodel extends ChangeNotifier {
         }
         return result;
     }
+  }
+
+  @override
+  void dispose() {
+    _locationRepository.stopLocationUpdates();
+    locationStatus.dispose();
+    super.dispose();
   }
 }
