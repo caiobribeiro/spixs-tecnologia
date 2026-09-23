@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../app_dependency_injection.dart';
+import '../../../app_routes.dart';
 import '../../core/theme/domain/app_theme.dart';
 import '../../core/theme/domain/tokens/app_spacing.dart';
 import '../../core/theme/domain/tokens/app_typography.dart';
@@ -39,10 +40,7 @@ class _RoutesFormViewState extends State<RoutesFormView> {
                 padding: const EdgeInsets.all(AppSpacing.space4),
                 children: [
                   // Título da tela: estilo `title`, margem inferior `space-4`.
-                  Text(
-                    'Para onde vamos?',
-                    style: AppTypography.title,
-                  ),
+                  Text('Para onde vamos?', style: AppTypography.title),
                   const SizedBox(height: AppSpacing.space4),
                   ..._buildAddressFields(),
                   const SizedBox(height: AppSpacing.space2),
@@ -111,9 +109,13 @@ class _RoutesFormViewState extends State<RoutesFormView> {
   ///
   /// O botão já é desabilitado enquanto houver campo vazio ([canConfirm]);
   /// esta validação é a rede de segurança pedida pelos validadores do form.
+  /// Após confirmar, navega para o mapa: a rota é calculada em segundo plano
+  /// (`confirmRoute`) e fica disponível para o [MapView] via a SSOT do
+  /// módulo `map` (`MapRepository.route`).
   void _confirmRoute() {
     if (_formKey.currentState?.validate() ?? false) {
       _viewmodel.confirmRoute();
+      Navigator.of(context).pushNamed(AppRoute.map.path);
     }
   }
 
