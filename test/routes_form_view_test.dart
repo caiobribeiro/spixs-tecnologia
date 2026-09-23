@@ -8,10 +8,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/app_dependency_injection.dart';
+import 'package:spixs_tecnologia/app_routes.dart';
 import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
 import 'package:spixs_tecnologia/modules/home/domain/repository/places_repository.dart';
 import 'package:spixs_tecnologia/modules/home/presenter/routes_form_view.dart';
+import 'package:spixs_tecnologia/modules/map/domain/repository/map_repository.dart';
 
+import 'fakes/fake_map_repository.dart';
 import 'fakes/fake_places_repository.dart';
 
 void main() {
@@ -166,5 +169,41 @@ void main() {
 
     // Menos de 3 caracteres: nenhuma sugestão é buscada/exibida.
     expect(find.text('Av. Paulista, 1000'), findsNothing);
+  });
+
+  testWidgets('Confirmar rota navega para a tela do mapa (/map)',
+      (tester) async {
+    // Rota calculada em segundo plano: fake evita a API real no teste.
+    getIt.registerSingleton<MapRepository>(FakeMapRepository());
+
+    // Navigator que registra a rota empurrada sem construir o MapView
+    // (o GoogleMap exige platform view, indisponível em widget tests).
+    String? pushedRouteName;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const RoutesFormView(),
+        onGenerateRoute: (settings) {
+          pushedRouteName = settings.name;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: SizedBox.shrink()),
+          );
+        },
+      ),
+    );
+    await tester.pump();
+
+    // Preenche os 3 endereços para liberar o botão.
+    await typeAddress(tester, 0, 'Rua A');
+    await typeAddress(tester, 1, 'Rua B');
+    await typeAddress(tester, 2, 'Rua C');
+    expect(confirmButton(tester).onPressed, isNotNull);
+
+    // Confirma a rota: deve empurrar a rota /map do módulo map.
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
+
+    expect(pushedRouteName, AppRoute.map.path);
+    expect(pushedRouteName, '/map');
   });
 }
