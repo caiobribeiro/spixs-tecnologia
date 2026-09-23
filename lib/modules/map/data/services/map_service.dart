@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
+import '../../../../app_config.dart';
 import '../../../../shared/patterns/result.dart';
 import '../models/geo_point_model.dart';
 import '../models/place_model.dart';
@@ -16,7 +17,7 @@ class MapService {
     Dio? dio,
     String? apiKey,
   })  : _dio = dio ?? Dio(),
-        _apiKey = apiKey ?? '';
+        _apiKey = apiKey ?? AppConfig.googleMapsApiKey;
 
   static const String _directionsUrl =
       'https://maps.googleapis.com/maps/api/directions/json';
@@ -54,6 +55,16 @@ class MapService {
     required GeoPointModel origin,
     required GeoPointModel destination,
   }) async {
+    // Fail fast: chave ausente produziria REQUEST_DENIED opaco da API.
+    if (_apiKey.isEmpty) {
+      return Result.error(
+        Exception(
+          'Chave da Google Maps API não configurada. Execute o app com '
+          '`--dart-define-from-file=env.json` ou '
+          '`--dart-define=GOOGLE_MAPS_API_KEY=<sua-chave>` (ver README.md).',
+        ),
+      );
+    }
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         _directionsUrl,
