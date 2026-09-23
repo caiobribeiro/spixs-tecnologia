@@ -1,18 +1,23 @@
-import 'geo_point_entity.dart';
-
-/// Value object holding the arguments needed to request a route.
+/// Value object holding the addresses collected from the address form,
+/// used to compute a route through the Google Routes API.
 ///
-/// Used so the route action can be executed through a single-argument
-/// [Command] (see `shared/patterns/command.dart`).
+/// The first address is the origin, the last is the destination and the
+/// ones in between are intermediate waypoints — their order can be
+/// optimized by the API via `optimizeWaypointOrder`.
 class RouteRequestEntity {
-  const RouteRequestEntity({
-    required this.origin,
-    required this.destination,
-  });
+  const RouteRequestEntity({required this.addresses});
 
-  final GeoPointEntity origin;
-  final GeoPointEntity destination;
+  /// Addresses in the order they were typed on the form (A, B, C...).
+  final List<String> addresses;
+
+  /// Intermediate waypoints (everything between origin and destination).
+  List<String> get intermediates => addresses.length > 2
+      ? addresses.sublist(1, addresses.length - 1)
+      : const <String>[];
+
+  /// Whether the request has at least origin + destination.
+  bool get hasAtLeastTwoWaypoints => addresses.length >= 2;
 
   @override
-  String toString() => 'RouteRequestEntity(origin: $origin, destination: $destination)';
+  String toString() => 'RouteRequestEntity(addresses: $addresses)';
 }
