@@ -164,7 +164,7 @@ Code organization rule:
 
 ## 🎯 Architecture Layers
 
-Create a use case in exactly two situations: **(1)** a ViewModel method that uses **more than two repositories** (orchestration that does not belong in the presentation layer), and **(2)** a reusable domain rule/helper worth a named contract (e.g. `MapMarkerHelper`, `RouteStopsSorter`, `RoutePathTrimmer`, `GeographicDistance`). Theme code is **never** a use case. See [Use Cases](#-use-cases) for the full rule.
+Create a use case in exactly two situations: **(1)** a ViewModel method that uses **more than two repositories** (orchestration that does not belong in the presentation layer), and **(2)** a reusable domain rule/helper worth a named contract (e.g. `NumberedMarkerUseCase`, `SortStopsByDistanceUseCase`, `TrimRoutePathUseCase`, `CalculateGeographicDistanceUseCase`). Theme code is **never** a use case. See [Use Cases](#-use-cases) for the full rule.
 
 ### 1. **Presentation Layer**
 
@@ -463,7 +463,7 @@ Create a use case in exactly **two** situations:
 
 2. **A reusable domain rule or pure helper deserves a named contract.**
 
-   Domain utilities that encapsulate business logic used by a feature — such as `MapMarkerHelper`, `RouteStopsSorter`, `RoutePathTrimmer` and `GeographicDistance` — are modeled as use cases so they have a clear contract, live in the domain layer and are unit-testable in isolation.
+   Domain utilities that encapsulate business logic used by a feature — such as `NumberedMarkerUseCase`, `SortStopsByDistanceUseCase`, `TrimRoutePathUseCase` and `CalculateGeographicDistanceUseCase` — are modeled as use cases so they have a clear contract, live in the domain layer and are unit-testable in isolation.
 
 ### When NOT to create a use case
 
@@ -474,6 +474,8 @@ Create a use case in exactly **two** situations:
 ### Structure
 
 - Live in `lib/modules/<module>/domain/usecases/<use_case_name>.dart`.
+- Use cases are **never instantiated by the View/widget**: the ViewModel is the only presentation entry point that resolves them (via DI) — the View interacts with them only through ViewModel methods.
+- Framework-bound use cases (e.g. `NumberedMarkerUseCase`, which depends on the Google Maps SDK `BitmapDescriptor`) stay in the presenter as `lib/modules/<module>/presenter/usecases/<use_case_name>.dart` — the domain layer must remain framework-independent.
 - Expose a single public method `execute(...)`.
 - Depend on repository interfaces (contracts); never on `RepositoryImpl` or `getIt`.
 - Return `Result<T>` and follow the [Typed Result Switch Rule](#-typed-result-switch-rule) when orchestrating repositories.
