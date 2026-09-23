@@ -18,6 +18,7 @@ import 'package:spixs_tecnologia/modules/map/presenter/map_view/map_viewmodel.da
 import 'package:spixs_tecnologia/modules/map/domain/usecases/numbered_marker_use_case.dart';
 import 'package:spixs_tecnologia/shared/patterns/result.dart';
 
+import 'fakes/fake_connectivity_repository.dart';
 import 'fakes/fake_location_repository.dart';
 import 'fakes/fake_map_repository.dart';
 
@@ -543,6 +544,26 @@ void main() {
 
       expect(mapRepository.computeRouteCalls, 1);
       expect(viewmodel.routeRecalculationCount.value, 0);
+    });
+  });
+
+  group('MapViewmodel — conectividade', () {
+    test('isOnline reflete a conectividade do repositório', () {
+      final connectivity = FakeConnectivityRepository(online: false);
+      final viewmodel = MapViewmodel(
+        FakeMapRepository(),
+        FakeLocationRepository(startPoint: userLocation),
+        trimRoutePath,
+        markerIconsUseCase,
+        detectRouteDeviation,
+        findUnvisitedStops,
+        detectRouteCompletion,
+        connectivityRepository: connectivity,
+      );
+
+      expect(viewmodel.isOnline.value, isFalse);
+      connectivity.setOnline(true);
+      expect(viewmodel.isOnline.value, isTrue);
     });
   });
 }

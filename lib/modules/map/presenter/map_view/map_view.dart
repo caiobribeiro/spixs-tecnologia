@@ -7,6 +7,7 @@ import 'package:spixs_tecnologia/app_dependency_injection.dart';
 import '../../../core/theme/domain/tokens/app_colors.dart';
 import '../../../core/theme/domain/tokens/app_spacing.dart';
 import '../../../core/theme/domain/tokens/app_typography.dart';
+import '../../../../shared/widgets/connectivity_warning_banner.dart';
 import '../../domain/entity/geo_point_entity.dart';
 import '../../domain/entity/location_access_status.dart';
 import '../../domain/entity/route_entity.dart';
@@ -66,6 +67,8 @@ class _MapViewState extends State<MapView> {
     _viewmodel.startPoint.addListener(_onStartPointChanged);
     _viewmodel.route.addListener(_onRouteChanged);
     _generateWaypointIcons();
+    // Wires o listener de conectividade (idempotente) para o banner offline.
+    _viewmodel.startConnectivityMonitoring();
     // Entrada do mapa: repassa os endereços do formulário (a rota só é
     // calculada quando a localização do usuário chega) e pede a localização.
     unawaited(_viewmodel.initializeRoute(widget.addresses ?? const []));
@@ -233,6 +236,25 @@ class _MapViewState extends State<MapView> {
                       ),
                       _buildLocationStatusOverlay(),
                       _buildRouteOrderOverlay(route),
+                      // Banner pequeno de "sem conexão": apenas aviso — a
+                      // navegação/tela do mapa continua funcionando offline.
+                      ValueListenableBuilder<bool>(
+                        valueListenable: _viewmodel.isOnline,
+                        builder: (context, isOnline, _) {
+                          if (isOnline) {
+                            return const SizedBox.shrink();
+                          }
+                          return const Align(
+                            alignment: Alignment.topCenter,
+                            child: SafeArea(
+                              child: Padding(
+                                padding: EdgeInsets.all(AppSpacing.space3),
+                                child: ConnectivityWarningBanner(compact: true),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
                       // Por cima dos demais: visível mesmo com rota anterior ainda
                       // renderizada enquanto a nova é recalculada.
                       _buildRouteLoadingOverlay(),

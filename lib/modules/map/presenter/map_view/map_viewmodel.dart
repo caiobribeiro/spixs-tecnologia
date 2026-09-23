@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:spixs_tecnologia/app_dependency_injection.dart';
 
+import '../../../../modules/core/connectivity/domain/repository/connectivity_repository.dart';
 import '../../../../shared/patterns/command.dart';
 import '../../../../shared/patterns/result.dart';
 import '../../domain/entity/geo_point_entity.dart';
@@ -49,8 +51,9 @@ class MapViewmodel extends ChangeNotifier {
     this._markerIcons,
     this._detectRouteDeviation,
     this._findUnvisitedStops,
-    this._detectRouteCompletion,
-  );
+    this._detectRouteCompletion, {
+    this._connectivityRepository,
+  });
 
   final MapRepository _repository;
   final LocationRepository _locationRepository;
@@ -59,6 +62,21 @@ class MapViewmodel extends ChangeNotifier {
   final DetectRouteDeviationUseCase _detectRouteDeviation;
   final FindUnvisitedStopsUseCase _findUnvisitedStops;
   final DetectRouteCompletionUseCase _detectRouteCompletion;
+
+  /// Repositório de conectividade (SSOT da internet); injetável nos testes.
+  ///
+  /// Resolvido via DI na primeira leitura ([isOnline]) para não criar
+  /// dependência no construtor — testes unitários sem ele não quebram.
+  ConnectivityRepository? _connectivityRepository;
+  ConnectivityRepository get _connectivityRepo =>
+      _connectivityRepository ??= getIt<ConnectivityRepository>();
+
+  /// SSOT da conectividade (internet disponível?) — banner no mapa.
+  ValueListenable<bool> get isOnline => _connectivityRepo.isOnline;
+
+  /// Wires (again) o listener de conectividade; idempotente no repositório.
+  Future<void> startConnectivityMonitoring() =>
+      _connectivityRepo.startMonitoring();
 
   /// Endereços do formulário de rotas (A, B, C...), repassados na navegação
   /// para a tela do mapa e consumidos na entrada.

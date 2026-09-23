@@ -10,10 +10,12 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/app_dependency_injection.dart';
 import 'package:spixs_tecnologia/app_routes.dart';
+import 'package:spixs_tecnologia/modules/core/connectivity/domain/repository/connectivity_repository.dart';
 import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
 import 'package:spixs_tecnologia/modules/home/domain/repository/places_repository.dart';
 import 'package:spixs_tecnologia/modules/home/presenter/routes_form_view/routes_form_view.dart';
 
+import 'fakes/fake_connectivity_repository.dart';
 import 'fakes/fake_places_repository.dart';
 
 void main() {
@@ -62,10 +64,14 @@ void main() {
 
   setUpAll(setupDependencyInjection);
 
-  /// Sem rede nos testes: sobrescreve o repositório com um fake vazio.
+  /// Sem rede nos testes: sobrescreve os repositórios com fakes.
   setUp(() {
     getIt.allowReassignment = true;
     getIt.registerSingleton<PlacesRepository>(FakePlacesRepository());
+    // Conectividade: fake online por padrão; testes offline trocam/ajustam.
+    getIt.registerSingleton<ConnectivityRepository>(
+      FakeConnectivityRepository(),
+    );
   });
 
   /// Botão "Confirmar rota" exibido na tela.
@@ -326,6 +332,42 @@ void main() {
         'Rua C, 300 - Pinheiros, São Paulo - SP, Brasil',
       ]),
     );
+  });
+
+  testWidgets('offline: banner de aviso e Confirmar rota desabilitado', (
+    tester,
+  ) async {
+    final connectivity = FakeConnectivityRepository(online: false);
+    getIt.registerSingleton<ConnectivityRepository>(connectivity);
+    getIt.registerSingleton<PlacesRepository>(
+      FakePlacesRepository(byInput: byInput),
+    );
+
+    await pumpForm(tester);
+
+    // Aviso no topo do formulário (design system) + mensagem sob o botão.
+    expect(find.text('Sem conexão com a internet'), findsOneWidget);
+    expect(
+      find.text('Sem conexão com a internet — a rota não pode ser confirmada'),
+      findsOneWidget,
+    );
+
+    // Mesmo com todos os endereços preenchidos e selecionados, o botão
+    // continua desabilitado enquanto não houver internet.
+    await fillWithSelection(tester, 0, 'Rua A', 'Rua A, 100');
+    await fillWithSelection(tester, 1, 'Rua B', 'Rua B, 200');
+    await fillWithSelection(tester, 2, 'Rua C', 'Rua C, 300');
+    expect(confirmButton(tester).onPressed, isNull);
+    expect(
+      find.text('Sem conexão com a internet — a rota não pode ser confirmada'),
+      findsOneWidget,
+    );
+
+    // Volta online: o aviso some e o botão habilita sem nova interação.
+    connectivity.setOnline(true);
+    await tester.pump();
+    expect(find.text('Sem conexão com a internet'), findsNothing);
+    expect(confirmButton(tester).onPressed, isNotNull);
   });
 
   testWidgets('voltar do mapa com trajeto concluído limpa o formulário', (
