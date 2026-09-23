@@ -51,15 +51,10 @@ void setupDependencyInjection() {
     () => PlacesRepositoryImpl(getIt<PlacesService>()),
   );
   getIt.registerFactory<HomeViewmodel>(
-    () => HomeViewmodel(
-      getIt<HomeRepository>(),
-      getIt<AuthRepository>(),
-    ),
+    () => HomeViewmodel(getIt<HomeRepository>(), getIt<AuthRepository>()),
   );
   getIt.registerFactory<RoutesFormViewmodel>(
-    () => RoutesFormViewmodel(
-      placesRepository: getIt<PlacesRepository>(),
-    ),
+    () => RoutesFormViewmodel(placesRepository: getIt<PlacesRepository>()),
   );
 
   // ---- Map module ----

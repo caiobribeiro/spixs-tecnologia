@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 
 import '../../../../shared/patterns/command.dart';
 import '../../../../shared/patterns/result.dart';
-import '../domain/entity/geo_point_entity.dart';
 import '../domain/entity/place_entity.dart';
 import '../domain/entity/route_entity.dart';
 import '../domain/entity/route_request_entity.dart';
@@ -10,8 +9,8 @@ import '../domain/repository/map_repository.dart';
 
 /// Manages the state and logic of the map screen.
 ///
-/// Exposes [Command]s to perform actions and reads data through the
-/// [MapRepository] contract. It never depends on the repository
+/// Exposes [Command]s to perform actions and reads the module SSOT through
+/// the [MapRepository] contract. It never depends on the repository
 /// implementation directly.
 class MapViewmodel extends ChangeNotifier {
   MapViewmodel(this._repository);
@@ -23,7 +22,7 @@ class MapViewmodel extends ChangeNotifier {
   );
 
   late final getRouteCommand = Command1<RouteEntity, RouteRequestEntity>(
-    _repository.getRoute,
+    _repository.computeRoute,
   );
 
   /// The latest places loaded by [getPlacesCommand], if any.
@@ -35,25 +34,14 @@ class MapViewmodel extends ChangeNotifier {
     return null;
   }
 
-  /// The latest route loaded by [getRouteCommand], if any.
-  RouteEntity? get route {
-    final result = getRouteCommand.result;
-    if (result is Ok<RouteEntity>) {
-      return result.value;
-    }
-    return null;
-  }
+  /// SSOT da rota calculada (vive no [MapRepositoryImpl]).
+  ValueNotifier<RouteEntity?> get route => _repository.route;
 
   /// Loads the places shown on the map.
   Future<void> loadPlaces() => getPlacesCommand.execute();
 
-  /// Computes a route between [origin] and [destination].
-  Future<void> loadRoute({
-    required GeoPointEntity origin,
-    required GeoPointEntity destination,
-  }) {
-    return getRouteCommand.execute(
-      RouteRequestEntity(origin: origin, destination: destination),
-    );
+  /// Computes a route for the addresses collected on the form.
+  Future<void> loadRoute(RouteRequestEntity request) {
+    return getRouteCommand.execute(request);
   }
 }
