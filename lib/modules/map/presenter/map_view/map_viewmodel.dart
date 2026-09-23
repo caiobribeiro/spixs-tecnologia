@@ -5,16 +5,16 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../shared/patterns/command.dart';
 import '../../../../shared/patterns/result.dart';
-import '../domain/entity/geo_point_entity.dart';
-import '../domain/entity/location_access_status.dart';
-import '../domain/entity/place_entity.dart';
-import '../domain/entity/route_entity.dart';
-import '../domain/entity/route_request_entity.dart';
-import '../domain/location_access_failure.dart';
-import '../domain/repository/location_repository.dart';
-import '../domain/repository/map_repository.dart';
-import '../domain/usecases/trim_route_path_use_case.dart';
-import 'usecases/numbered_marker_use_case.dart';
+import '../../domain/entity/geo_point_entity.dart';
+import '../../domain/entity/location_access_status.dart';
+import '../../domain/entity/place_entity.dart';
+import '../../domain/entity/route_entity.dart';
+import '../../domain/entity/route_request_entity.dart';
+import '../../domain/location_access_failure.dart';
+import '../../domain/repository/location_repository.dart';
+import '../../domain/repository/map_repository.dart';
+import '../../domain/usecases/numbered_marker_use_case.dart';
+import '../../domain/usecases/trim_route_path_use_case.dart';
 
 /// Manages the state and logic of the map screen.
 ///
@@ -71,7 +71,8 @@ class MapViewmodel extends ChangeNotifier {
 
   /// O ponto de partida (localização atual) — SSOT vive no
   /// [LocationRepositoryImpl], acessado pelo contrato [LocationRepository].
-  ValueNotifier<GeoPointEntity?> get startPoint => _locationRepository.startPoint;
+  ValueNotifier<GeoPointEntity?> get startPoint =>
+      _locationRepository.startPoint;
 
   /// Pontos da polyline ainda à frente do usuário, derivados do SSOT da
   /// rota e do SSOT da posição atual.

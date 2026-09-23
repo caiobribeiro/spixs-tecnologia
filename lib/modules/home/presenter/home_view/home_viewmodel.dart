@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 
-import '../../core/auth/domain/auth_failure.dart';
-import '../../core/auth/domain/repository/auth_repository.dart';
+import '../../../core/auth/domain/auth_failure.dart';
+import '../../../core/auth/domain/repository/auth_repository.dart';
 import '../../../../shared/patterns/command.dart';
 import '../../../../shared/patterns/result.dart';
-import '../domain/entity/home_summary_entity.dart';
-import '../domain/repository/home_repository.dart';
+import '../../domain/entity/home_summary_entity.dart';
+import '../../domain/repository/home_repository.dart';
 
 class HomeViewmodel extends ChangeNotifier {
   HomeViewmodel(this._repository, this._authRepository);
@@ -19,9 +19,7 @@ class HomeViewmodel extends ChangeNotifier {
 
   /// Native authentication gate: biometria, senha, PIN ou padrão do
   /// dispositivo (Android/iOS).
-  late final authenticateCommand = Command0<bool>(
-    _authRepository.authenticate,
-  );
+  late final authenticateCommand = Command0<bool>(_authRepository.authenticate);
 
   /// Whether the user has already passed the native authentication gate.
   ValueListenable<bool> get isAuthenticated => _authRepository.isAuthenticated;

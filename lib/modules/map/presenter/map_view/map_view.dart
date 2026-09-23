@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:spixs_tecnologia/app_dependency_injection.dart';
 
-import '../../../app_dependency_injection.dart';
-import '../../../modules/core/theme/domain/tokens/app_colors.dart';
-import '../../../modules/core/theme/domain/tokens/app_spacing.dart';
-import '../../../modules/core/theme/domain/tokens/app_typography.dart';
-import '../domain/entity/geo_point_entity.dart';
-import '../domain/entity/location_access_status.dart';
-import '../domain/entity/route_entity.dart';
+import '../../../core/theme/domain/tokens/app_colors.dart';
+import '../../../core/theme/domain/tokens/app_spacing.dart';
+import '../../../core/theme/domain/tokens/app_typography.dart';
+import '../../domain/entity/geo_point_entity.dart';
+import '../../domain/entity/location_access_status.dart';
+import '../../domain/entity/route_entity.dart';
+import '../widgets/location_warning_card.dart';
+import '../widgets/start_navigation_button.dart';
 import 'map_viewmodel.dart';
-import 'widgets/location_warning_card.dart';
-import 'widgets/start_navigation_button.dart';
 
 /// Map screen entry point.
 ///
@@ -167,10 +167,9 @@ class _MapViewState extends State<MapView> {
               waypoint.location.latitude,
               waypoint.location.longitude,
             ),
-            icon: _numberedIcons[i] ??
-                BitmapDescriptor.defaultMarkerWithHue(
-                  BitmapDescriptor.hueRed,
-                ),
+            icon:
+                _numberedIcons[i] ??
+                BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
             infoWindow: InfoWindow(
               title: '$stopNumberº parada',
               snippet: waypoint.address,
@@ -194,9 +193,7 @@ class _MapViewState extends State<MapView> {
     return {
       Polyline(
         polylineId: const PolylineId('optimizedRoute'),
-        points: points
-            .map((p) => LatLng(p.latitude, p.longitude))
-            .toList(),
+        points: points.map((p) => LatLng(p.latitude, p.longitude)).toList(),
         color: AppColors.brand,
         width: 5,
         startCap: Cap.roundCap,
@@ -332,10 +329,7 @@ class _MapViewState extends State<MapView> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Ordem otimizada',
-                style: AppTypography.bodyStrong,
-              ),
+              Text('Ordem otimizada', style: AppTypography.bodyStrong),
               const SizedBox(height: AppSpacing.space2),
               for (var i = markerOffset; i < route.waypoints.length; i++)
                 Padding(
@@ -430,7 +424,8 @@ class _MapViewState extends State<MapView> {
                   icon: Icons.location_off,
                   iconColor: AppColors.danger,
                   title: 'Permissão de localização negada',
-                  message: 'Para definir seu ponto de partida, conceda a '
+                  message:
+                      'Para definir seu ponto de partida, conceda a '
                       'permissão de localização ao Spixs Tecnologia.',
                   buttonLabel: 'Permitir localização',
                   working: command.running,
@@ -447,7 +442,8 @@ class _MapViewState extends State<MapView> {
                   icon: Icons.gps_off,
                   iconColor: AppColors.warning,
                   title: 'GPS desligado',
-                  message: 'Ligue o GPS para centralizar o mapa na sua '
+                  message:
+                      'Ligue o GPS para centralizar o mapa na sua '
                       'localização atual e definir o ponto de partida.',
                   buttonLabel: 'Ligar GPS',
                   working: command.running,
@@ -464,7 +460,8 @@ class _MapViewState extends State<MapView> {
                   icon: Icons.error_outline,
                   iconColor: AppColors.danger,
                   title: 'Não foi possível obter a localização',
-                  message: 'Verifique se o GPS está ligado e tente '
+                  message:
+                      'Verifique se o GPS está ligado e tente '
                       'novamente.',
                   buttonLabel: 'Tentar novamente',
                   working: command.running,

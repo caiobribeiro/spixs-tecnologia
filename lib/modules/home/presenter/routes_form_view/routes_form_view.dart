@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:spixs_tecnologia/app_dependency_injection.dart';
 
-import '../../../app_dependency_injection.dart';
-import '../../../app_routes.dart';
-import '../../core/theme/domain/app_theme.dart';
-import '../../core/theme/domain/tokens/app_spacing.dart';
-import '../../core/theme/domain/tokens/app_typography.dart';
+import '../../../../app_routes.dart';
+import '../../../core/theme/domain/app_theme.dart';
+import '../../../core/theme/domain/tokens/app_spacing.dart';
+import '../../../core/theme/domain/tokens/app_typography.dart';
+import '../widgets/address_autocomplete_field.dart';
 import 'routes_form_viewmodel.dart';
-import 'widgets/address_autocomplete_field.dart';
 
 /// Form screen: "Para onde vamos?".
 ///
@@ -115,10 +115,7 @@ class _RoutesFormViewState extends State<RoutesFormView> {
   void _confirmRoute() {
     if (_formKey.currentState?.validate() ?? false) {
       final addresses = _viewmodel.collectAddresses();
-      Navigator.of(context).pushNamed(
-        AppRoute.map.path,
-        arguments: addresses,
-      );
+      Navigator.of(context).pushNamed(AppRoute.map.path, arguments: addresses);
     }
   }
 

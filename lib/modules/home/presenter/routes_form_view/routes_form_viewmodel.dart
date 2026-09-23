@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
+import 'package:spixs_tecnologia/app_dependency_injection.dart';
 
-import '../../../app_dependency_injection.dart';
-import '../../../shared/patterns/result.dart';
-import '../../../shared/mixins/validation_mixin.dart';
-import '../domain/entity/place_suggestion_entity.dart';
-import '../domain/repository/places_repository.dart';
+import '../../../../shared/mixins/validation_mixin.dart';
+import '../../../../shared/patterns/result.dart';
+import '../../domain/entity/place_suggestion_entity.dart';
+import '../../domain/repository/places_repository.dart';
 
 /// Manages the state of the address form screen (`RoutesFormView`).
 ///

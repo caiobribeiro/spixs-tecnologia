@@ -13,8 +13,8 @@ import 'modules/home/domain/repository/home_repository.dart';
 import 'modules/home/domain/repository/home_repository_impl.dart';
 import 'modules/home/domain/repository/places_repository.dart';
 import 'modules/home/domain/repository/places_repository_impl.dart';
-import 'modules/home/presenter/home_viewmodel.dart';
-import 'modules/home/presenter/routes_form_viewmodel.dart';
+import 'modules/home/presenter/home_view/home_viewmodel.dart';
+import 'modules/home/presenter/routes_form_view/routes_form_viewmodel.dart';
 import 'modules/map/data/services/geocoding_service.dart';
 import 'modules/map/data/services/location_service.dart';
 import 'modules/map/data/services/map_service.dart';
@@ -23,10 +23,10 @@ import 'modules/map/domain/repository/location_repository_impl.dart';
 import 'modules/map/domain/repository/map_repository.dart';
 import 'modules/map/domain/repository/map_repository_impl.dart';
 import 'modules/map/domain/usecases/calculate_geographic_distance_use_case.dart';
+import 'modules/map/domain/usecases/numbered_marker_use_case.dart';
 import 'modules/map/domain/usecases/sort_stops_by_distance_use_case.dart';
 import 'modules/map/domain/usecases/trim_route_path_use_case.dart';
-import 'modules/map/presenter/map_viewmodel.dart';
-import 'modules/map/presenter/usecases/numbered_marker_use_case.dart';
+import 'modules/map/presenter/map_view/map_viewmodel.dart';
 
 final getIt = GetIt.instance;
 
@@ -97,9 +97,8 @@ void setupDependencyInjection() {
     () => CalculateGeographicDistanceUseCase(),
   );
   getIt.registerLazySingleton<SortStopsByDistanceUseCase>(
-    () => SortStopsByDistanceUseCase(
-      getIt<CalculateGeographicDistanceUseCase>(),
-    ),
+    () =>
+        SortStopsByDistanceUseCase(getIt<CalculateGeographicDistanceUseCase>()),
   );
   getIt.registerLazySingleton<TrimRoutePathUseCase>(
     () => TrimRoutePathUseCase(),

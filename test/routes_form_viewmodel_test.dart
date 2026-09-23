@@ -4,7 +4,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
-import 'package:spixs_tecnologia/modules/home/presenter/routes_form_viewmodel.dart';
+import 'package:spixs_tecnologia/modules/home/presenter/routes_form_view/routes_form_viewmodel.dart';
 
 import 'fakes/fake_places_repository.dart';
 
@@ -18,19 +18,21 @@ void main() {
       expect(viewmodel.canRemoveAddressField, isFalse);
     });
 
-    test('habilita confirmação somente quando TODOS os campos estão preenchidos',
-        () {
-      final viewmodel = RoutesFormViewmodel();
+    test(
+      'habilita confirmação somente quando TODOS os campos estão preenchidos',
+      () {
+        final viewmodel = RoutesFormViewmodel();
 
-      // Preenche apenas 2 de 3: ainda desabilitado.
-      viewmodel.addressControllers[0].text = 'Rua A';
-      viewmodel.addressControllers[1].text = 'Rua B';
-      expect(viewmodel.canConfirm, isFalse);
+        // Preenche apenas 2 de 3: ainda desabilitado.
+        viewmodel.addressControllers[0].text = 'Rua A';
+        viewmodel.addressControllers[1].text = 'Rua B';
+        expect(viewmodel.canConfirm, isFalse);
 
-      // Preenche o terceiro: habilita.
-      viewmodel.addressControllers[2].text = 'Rua C';
-      expect(viewmodel.canConfirm, isTrue);
-    });
+        // Preenche o terceiro: habilita.
+        viewmodel.addressControllers[2].text = 'Rua C';
+        expect(viewmodel.canConfirm, isTrue);
+      },
+    );
 
     test('com ponto extra, exige que TODOS os campos estejam preenchidos', () {
       final viewmodel = RoutesFormViewmodel();
@@ -212,18 +214,20 @@ void main() {
   });
 
   group('RoutesFormViewmodel — endereços para o mapa', () {
-    test('collectAddresses coleta os endereços preenchidos na ordem do form',
-        () {
-      final viewmodel = RoutesFormViewmodel();
-      viewmodel.addressControllers[0].text = 'Av. Paulista, 1000';
-      viewmodel.addressControllers[1].text = 'Rua B';
-      viewmodel.addressControllers[2].text = 'Rua C';
+    test(
+      'collectAddresses coleta os endereços preenchidos na ordem do form',
+      () {
+        final viewmodel = RoutesFormViewmodel();
+        viewmodel.addressControllers[0].text = 'Av. Paulista, 1000';
+        viewmodel.addressControllers[1].text = 'Rua B';
+        viewmodel.addressControllers[2].text = 'Rua C';
 
-      expect(
-        viewmodel.collectAddresses(),
-        orderedEquals(['Av. Paulista, 1000', 'Rua B', 'Rua C']),
-      );
-    });
+        expect(
+          viewmodel.collectAddresses(),
+          orderedEquals(['Av. Paulista, 1000', 'Rua B', 'Rua C']),
+        );
+      },
+    );
 
     test('pontos adicionados entram na coleta na ordem do form', () {
       final viewmodel = RoutesFormViewmodel();
