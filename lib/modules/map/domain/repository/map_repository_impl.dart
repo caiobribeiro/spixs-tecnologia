@@ -4,10 +4,14 @@ import '../../../../shared/patterns/result.dart';
 import '../../data/models/geo_point_model.dart';
 import '../../data/models/place_model.dart';
 import '../../data/models/route_model.dart';
+import '../../data/services/geocoding_service.dart';
 import '../../data/services/map_service.dart';
+import '../entity/geo_point_entity.dart';
 import '../entity/place_entity.dart';
 import '../entity/route_entity.dart';
 import '../entity/route_request_entity.dart';
+import '../entity/route_stop_entity.dart';
+import '../route_stops_sorter.dart';
 import 'map_repository.dart';
 
 /// Concrete [MapRepository].
@@ -16,9 +20,10 @@ import 'map_repository.dart';
 /// `Model`s returned by the service into domain entities and **owns the
 /// SSOT** of the module data ([route]).
 class MapRepositoryImpl implements MapRepository {
-  MapRepositoryImpl(this._service);
+  MapRepositoryImpl(this._service, this._geocodingService);
 
   final MapService _service;
+  final GeocodingService _geocodingService;
 
   /// SSOT da rota calculada — única fonte da verdade para a tela do mapa.
   ///
@@ -46,15 +51,44 @@ class MapRepositoryImpl implements MapRepository {
   @override
   Future<Result<RouteEntity>> computeRoute(RouteRequestEntity request) async {
     final origin = request.origin;
-    final result = await _service.computeRoute(
-      request.addresses,
-      origin: origin == null
-          ? null
-          : GeoPointModel(
-              latitude: origin.latitude,
-              longitude: origin.longitude,
-            ),
-    );
+    if (origin == null) {
+      // Sem a localização do usuário não há ponto de referência para a
+      // verificação de distância: segue o fluxo atual (a API otimiza os
+      // waypoints intermediários).
+      return _compute(request.addresses, origin: null);
+    }
+
+    // Verificação de distância: resolve as coordenadas de cada endereço e
+    // ordena do **mais próximo ao mais distante** do usuário. O mais
+    // distante vira o último endereço da requisição, i.e. o destino final
+    // da rota — a ordem digitada deixa de definir a rota.
+    final stopsResult =
+        await _resolveStopsOrderedByDistance(request.addresses, origin);
+    switch (stopsResult) {
+      case Ok<List<RouteStopEntity>>():
+        final orderedAddresses =
+            stopsResult.value.map((stop) => stop.address).toList();
+        return _compute(
+          orderedAddresses,
+          origin: GeoPointModel(
+            latitude: origin.latitude,
+            longitude: origin.longitude,
+          ),
+        );
+      case Error<List<RouteStopEntity>>():
+        final value = stopsResult;
+        return Result.error(value.error);
+    }
+  }
+
+  /// Delegates to the data layer ([MapService.computeRoute]) converting the
+  /// `Model` returned into the domain entity. Only the SSOT is updated
+  /// after the API succeeds.
+  Future<Result<RouteEntity>> _compute(
+    List<String> addresses, {
+    GeoPointModel? origin,
+  }) async {
+    final result = await _service.computeRoute(addresses, origin: origin);
 
     switch (result) {
       case Ok<RouteModel>():
@@ -66,5 +100,44 @@ class MapRepositoryImpl implements MapRepository {
         final value = result;
         return Result.error(value.error);
     }
+  }
+
+  /// Geocoda cada endereço, converte Model → Entity e retorna as paradas
+  /// ordenadas pela distância (em linha reta) até [origin]: do mais
+  /// próximo ao mais distante. Falha com o primeiro erro de geocoding.
+  Future<Result<List<RouteStopEntity>>> _resolveStopsOrderedByDistance(
+    List<String> addresses,
+    GeoPointEntity origin,
+  ) async {
+    if (addresses.isEmpty) {
+      return const Result.ok([]);
+    }
+
+    final geocodeResults = await Future.wait<Result<GeoPointModel>>(
+      [
+        for (final address in addresses) _geocodingService.geocodeAddress(address),
+      ],
+    );
+
+    final stops = <RouteStopEntity>[];
+    for (var i = 0; i < geocodeResults.length; i++) {
+      final geocodeResult = geocodeResults[i];
+      switch (geocodeResult) {
+        case Ok<GeoPointModel>():
+          stops.add(
+            RouteStopEntity(
+              address: addresses[i],
+              location: geocodeResult.value.toEntity(),
+            ),
+          );
+        case Error<GeoPointModel>():
+          final value = geocodeResult;
+          return Result.error(value.error);
+      }
+    }
+
+    return Result.ok(
+      RouteStopsSorter.nearestToFarthestFromOrigin(origin: origin, stops: stops),
+    );
   }
 }
