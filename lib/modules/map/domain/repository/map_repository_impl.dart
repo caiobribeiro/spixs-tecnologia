@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../../shared/patterns/result.dart';
+import '../../data/models/geo_point_model.dart';
 import '../../data/models/place_model.dart';
 import '../../data/models/route_model.dart';
 import '../../data/services/map_service.dart';
@@ -44,7 +45,16 @@ class MapRepositoryImpl implements MapRepository {
 
   @override
   Future<Result<RouteEntity>> computeRoute(RouteRequestEntity request) async {
-    final result = await _service.computeRoute(request.addresses);
+    final origin = request.origin;
+    final result = await _service.computeRoute(
+      request.addresses,
+      origin: origin == null
+          ? null
+          : GeoPointModel(
+              latitude: origin.latitude,
+              longitude: origin.longitude,
+            ),
+    );
 
     switch (result) {
       case Ok<RouteModel>():

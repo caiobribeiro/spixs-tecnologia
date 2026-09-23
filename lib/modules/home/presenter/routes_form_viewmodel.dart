@@ -3,10 +3,8 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import '../../../app_dependency_injection.dart';
-import '../../../shared/mixins/validation_mixin.dart';
 import '../../../shared/patterns/result.dart';
-import '../../map/domain/entity/route_request_entity.dart';
-import '../../map/domain/repository/map_repository.dart';
+import '../../../shared/mixins/validation_mixin.dart';
 import '../domain/entity/place_suggestion_entity.dart';
 import '../domain/repository/places_repository.dart';
 
@@ -24,7 +22,6 @@ import '../domain/repository/places_repository.dart';
 class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   RoutesFormViewmodel({
     this._placesRepository,
-    this._mapRepository,
     this.searchDebounce = const Duration(milliseconds: 350),
   }) {
     for (final controller in _addressControllers) {
@@ -45,12 +42,6 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   PlacesRepository? _placesRepository;
   PlacesRepository get _autocompleteRepository =>
       _placesRepository ??= getIt<PlacesRepository>();
-
-  /// Repositório de rotas do módulo `map`; injetável nos testes.
-  ///
-  /// Mesmo padrão do autocomplete: resolvido via DI na primeira confirmação.
-  MapRepository? _mapRepository;
-  MapRepository get _routeRepository => _mapRepository ??= getIt<MapRepository>();
 
   /// Tempo de espera após a última tecla antes de consultar a API.
   final Duration searchDebounce;
@@ -201,27 +192,18 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
     _debounceTimers.clear();
   }
 
-  /// Coleta os endereços do formulário (SSOT dos inputs) e solicita o
-  /// cálculo da rota à Google Routes API (`optimizeWaypointOrder: true`).
+  /// Coleta os endereços preenchidos (SSOT dos inputs) para repassar à tela
+  /// do mapa na navegação.
   ///
-  /// O resultado é aplicado na **SSOT do módulo `map`** ([MapRepository.route])
-  /// e fica pronto para a tela do mapa consumir. A validação do [Form]
-  /// garante ≥ 3 endereços; aqui apenas defende o mínimo origem + destino.
-  void confirmRoute() {
-    final addresses = _addressControllers
-        .map((controller) => controller.text.trim())
-        .where((text) => text.isNotEmpty)
-        .toList();
-
-    if (addresses.length < 2) {
-      return;
-    }
-
-    unawaited(
-      _routeRepository.computeRoute(
-        RouteRequestEntity(addresses: addresses),
-      ),
-    );
+  /// A rota **não** é calculada aqui: ela é calculada na entrada do mapa,
+  /// inserindo a localização do usuário como origem da requisição. A
+  /// validação do [Form] garante ≥ [minimumAddresses] endereços preenchidos;
+  /// este método apenas filtra espaços em branco e preserva a ordem A/B/C.
+  List<String> collectAddresses() {
+    return [
+      for (final controller in _addressControllers)
+        if (controller.text.trim().isNotEmpty) controller.text.trim(),
+    ];
   }
 
   /// Reavalia o estado do botão enquanto o usuário digita nos campos.

@@ -109,13 +109,16 @@ class _RoutesFormViewState extends State<RoutesFormView> {
   ///
   /// O botão já é desabilitado enquanto houver campo vazio ([canConfirm]);
   /// esta validação é a rede de segurança pedida pelos validadores do form.
-  /// Após confirmar, navega para o mapa: a rota é calculada em segundo plano
-  /// (`confirmRoute`) e fica disponível para o [MapView] via a SSOT do
-  /// módulo `map` (`MapRepository.route`).
+  /// Após confirmar, navega para o mapa repassando os endereços como
+  /// argumentos: a rota em si é calculada na **entrada do mapa**, inserindo
+  /// a localização do usuário como origem da requisição.
   void _confirmRoute() {
     if (_formKey.currentState?.validate() ?? false) {
-      _viewmodel.confirmRoute();
-      Navigator.of(context).pushNamed(AppRoute.map.path);
+      final addresses = _viewmodel.collectAddresses();
+      Navigator.of(context).pushNamed(
+        AppRoute.map.path,
+        arguments: addresses,
+      );
     }
   }
 

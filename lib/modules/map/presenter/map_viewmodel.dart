@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 import '../../../../shared/patterns/command.dart';
@@ -16,11 +18,24 @@ import '../domain/repository/map_repository.dart';
 /// Exposes [Command]s to perform actions and reads the module SSOT through
 /// the [MapRepository] and [LocationRepository] contracts. It never depends
 /// on the repository implementations directly.
+///
+/// Na entrada do mapa, [initializeRoute] recebe os endereços preenchidos no
+/// formulário de rotas; assim que a localização do usuário fica disponível
+/// ([startPoint]), a rota é calculada com essa localização como **origem**
+/// e os endereços como pontos de parada, na ordem otimizada pela API.
 class MapViewmodel extends ChangeNotifier {
   MapViewmodel(this._repository, this._locationRepository);
 
   final MapRepository _repository;
   final LocationRepository _locationRepository;
+
+  /// Endereços do formulário de rotas (A, B, C...), repassados na navegação
+  /// para a tela do mapa e consumidos na entrada.
+  List<String>? _addresses;
+
+  /// Garante que a rota com a origem do usuário seja calculada uma única vez
+  /// por entrada no mapa, ignorando as atualizações contínuas de GPS.
+  bool _routeComputed = false;
 
   /// Estado do fluxo de acesso à localização, dirigindo a UI sobre o mapa
   /// (carregando / marcador de partida / avisos de permissão ou GPS).
@@ -55,6 +70,15 @@ class MapViewmodel extends ChangeNotifier {
   /// SSOT da rota calculada (vive no [MapRepositoryImpl]).
   ValueNotifier<RouteEntity?> get route => _repository.route;
 
+  /// Prepara o cálculo da rota na entrada do mapa com os [addresses] do
+  /// formulário. Se a localização já estiver disponível no SSOT, a rota é
+  /// calculada imediatamente; caso contrário, é disparada assim que a
+  /// localização chegar ([_requestLocationAccess]).
+  Future<void> initializeRoute(List<String> addresses) {
+    _addresses = addresses;
+    return _computeRouteWithUserOrigin();
+  }
+
   /// Executa o fluxo completo de acesso à localização (GPS → permissão →
   /// posição atual). Chamado ao abrir a tela e como retry genérico.
   Future<void> initializeLocation() {
@@ -83,9 +107,23 @@ class MapViewmodel extends ChangeNotifier {
   /// Loads the places shown on the map.
   Future<void> loadPlaces() => getPlacesCommand.execute();
 
-  /// Computes a route for the addresses collected on the form.
-  Future<void> loadRoute(RouteRequestEntity request) {
-    return getRouteCommand.execute(request);
+  /// Calcula a rota otimizada inserindo a localização do usuário como
+  /// origem na requisição (origem fixa + endereços do formulário como
+  /// paradas, otimizados pela Routes API).
+  Future<void> _computeRouteWithUserOrigin() async {
+    final origin = startPoint.value;
+    final addresses = _addresses;
+    if (_routeComputed ||
+        origin == null ||
+        addresses == null ||
+        addresses.isEmpty ||
+        getRouteCommand.running) {
+      return;
+    }
+    _routeComputed = true;
+    await getRouteCommand.execute(
+      RouteRequestEntity(addresses: addresses, origin: origin),
+    );
   }
 
   Future<Result<GeoPointEntity>> _requestLocationAccess() async {
@@ -96,6 +134,8 @@ class MapViewmodel extends ChangeNotifier {
       case Ok<GeoPointEntity>():
         locationStatus.value = LocationAccessStatus.ready;
         _locationRepository.startLocationUpdates();
+        // Com a localização em mãos, calcula a rota com ela como origem.
+        unawaited(_computeRouteWithUserOrigin());
         return result;
       case Error<GeoPointEntity>():
         final error = result.error;
