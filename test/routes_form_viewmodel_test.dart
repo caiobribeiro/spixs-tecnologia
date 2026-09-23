@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
 import 'package:spixs_tecnologia/modules/home/presenter/routes_form_view/routes_form_viewmodel.dart';
 
+import 'fakes/fake_connectivity_repository.dart';
 import 'fakes/fake_places_repository.dart';
 
 void main() {
@@ -194,6 +195,36 @@ void main() {
       viewmodel.removeAddressField(99);
 
       expect(viewmodel.addressControllers, hasLength(4));
+    });
+  });
+
+  group('RoutesFormViewmodel — conectividade', () {
+    test('sem conexão (repositório injetado) bloqueia a confirmação', () {
+      final connectivity = FakeConnectivityRepository(online: false);
+      final viewmodel = RoutesFormViewmodel(connectivityRepository: connectivity);
+
+      // Todos preenchidos e selecionados, mas offline → desabilitado.
+      for (var i = 0; i < 3; i++) {
+        viewmodel.selectSuggestion(i, suggestion('Rua $i'));
+      }
+      expect(viewmodel.allAddressesFilled, isTrue);
+      expect(viewmodel.allAddressesSelected, isTrue);
+      expect(viewmodel.canConfirm, isFalse);
+
+      // Volta online → habilita sem nova interação do usuário.
+      connectivity.setOnline(true);
+      expect(viewmodel.canConfirm, isTrue);
+    });
+
+    test('startConnectivityMonitoring delega ao repositório', () async {
+      final connectivity = FakeConnectivityRepository();
+      final viewmodel = RoutesFormViewmodel(connectivityRepository: connectivity);
+
+      await viewmodel.startConnectivityMonitoring();
+      await viewmodel.startConnectivityMonitoring();
+
+      // Cada chamada re-checa o estado (subscription idempotente no repo).
+      expect(connectivity.startMonitoringCalls, 2);
     });
   });
 
