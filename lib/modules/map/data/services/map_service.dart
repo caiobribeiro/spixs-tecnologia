@@ -63,11 +63,16 @@ class MapService {
   /// API to **optimize the intermediate waypoints**
   /// (`optimizeWaypointOrder: true`).
   ///
-  /// The first address is the origin, the last is the destination and the
-  /// ones in between are intermediates. The returned [RouteModel] carries
-  /// the waypoints already in the order the route visits them, the decoded
-  /// polyline and the route totals, ready for the map screen.
-  Future<Result<RouteModel>> computeRoute(List<String> addresses) async {
+  /// When [origin] (a coordenada do usuário) é informado, **todos** os
+  /// [addresses] são pontos de parada — o último é o destino e os demais
+  /// intermediários — e a origem vira a localização do usuário. Sem [origin],
+  /// o primeiro endereço é a origem e o último o destino. O [RouteModel]
+  /// devolvido carrega os waypoints na ordem da rota, a polyline decodificada,
+  /// os totais e a [RouteModel.userOrigin] quando aplicável.
+  Future<Result<RouteModel>> computeRoute(
+    List<String> addresses, {
+    GeoPointModel? origin,
+  }) async {
     // Fail fast: chave ausente produziria REQUEST_DENIED opaco da API.
     if (_apiKey.isEmpty) {
       return Result.error(
@@ -78,11 +83,29 @@ class MapService {
         ),
       );
     }
-    if (addresses.length < 2) {
+    final hasUserOrigin = origin != null;
+    if (!hasUserOrigin && addresses.length < 2) {
       return Result.error(
         Exception('A rota precisa de origem e destino (mínimo 2 endereços).'),
       );
     }
+    if (hasUserOrigin && addresses.isEmpty) {
+      return Result.error(
+        Exception('A rota precisa de pelo menos um endereço de destino.'),
+      );
+    }
+
+    // Com origem do usuário, todos os endereços do formulário viram paradas
+    // (destino = último, intermediários = demais). Sem ela, o primeiro
+    // endereço é a origem e os demais são as paradas.
+    final stops =
+        hasUserOrigin ? addresses : addresses.sublist(1);
+    // Rótulos de fallback alinhados aos waypoints (origem do usuário + paradas)
+    // quando a resposta da API vier sem endereço resolvido em alguma leg.
+    final requestedLabels = hasUserOrigin
+        ? <String>['Sua localização', ...stops]
+        : addresses;
+
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         _computeRoutesUrl,
@@ -94,10 +117,19 @@ class MapService {
           },
         ),
         data: <String, dynamic>{
-          'origin': <String, dynamic>{'address': addresses.first},
-          'destination': <String, dynamic>{'address': addresses.last},
+          'origin': hasUserOrigin
+              ? <String, dynamic>{
+                  'location': <String, dynamic>{
+                    'latLng': <String, dynamic>{
+                      'latitude': origin.latitude,
+                      'longitude': origin.longitude,
+                    },
+                  },
+                }
+              : <String, dynamic>{'address': addresses.first},
+          'destination': <String, dynamic>{'address': stops.last},
           'intermediates': <Map<String, dynamic>>[
-            for (final address in addresses.sublist(1, addresses.length - 1))
+            for (final address in stops.sublist(0, stops.length - 1))
               <String, dynamic>{'address': address},
           ],
           'travelMode': 'DRIVE',
@@ -131,7 +163,7 @@ class MapService {
 
       return Result.ok(
         RouteModel(
-          waypoints: _orderedWaypoints(firstRoute, addresses),
+          waypoints: _orderedWaypoints(firstRoute, requestedLabels),
           polylinePoints: decodedPoints,
           distanceMeters:
               (firstRoute['distanceMeters'] as num?)?.toDouble() ?? 0,
@@ -142,6 +174,7 @@ class MapService {
                       ?.map((index) => (index as num).toInt())
                       .toList() ??
                   const <int>[],
+          userOrigin: origin,
         ),
       );
     } on DioException catch (error) {

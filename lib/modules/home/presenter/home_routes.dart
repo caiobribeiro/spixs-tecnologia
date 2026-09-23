@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'home_view.dart';
-import 'routes_form_view.dart';
+import 'home_view/home_view.dart';
+import 'routes_form_view/routes_form_view.dart';
 
 /// Routes owned by the home module.
 enum HomeRoute { home, form }

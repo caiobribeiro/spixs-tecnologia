@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'map_view.dart';
+import 'map_view/map_view.dart';
 
 /// Routes owned by the map module.
 enum MapRoute { map }
@@ -24,7 +24,8 @@ Route<void> buildMapRoute(MapRoute route, {RouteSettings? settings}) {
     case MapRoute.map:
       return MaterialPageRoute<void>(
         settings: settings,
-        builder: (_) => const MapView(),
+        builder: (_) =>
+            MapView(addresses: settings?.arguments as List<String>?),
       );
   }
 }

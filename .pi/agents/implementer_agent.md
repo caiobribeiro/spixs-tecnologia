@@ -14,6 +14,7 @@ tools: ['vscode', 'execute', 'read', 'edit', 'search', 'web', 'agent', 'todo']
 - [Architecture Layers](#-architecture-layers)
 - [View and Widget Separation](#-view-and-widget-separation)
 - [Implemented Design Patterns](#-implemented-design-patterns)
+- [Use Cases](#-use-cases)
 - [Single Source of Truth](#-single-source-of-truth)
 - [Typed Result Switch Rule](#-typed-result-switch-rule)
 - [RPC-First Backend Rule](#-rpc-first-backend-rule)
@@ -162,7 +163,8 @@ Code organization rule:
 - Prefer this structure order: fields, constructor, named constructors/factories, getters/setters, public methods, private methods.
 
 ## 🎯 Architecture Layers
-The only reason for creating a usecase is if the function it will use more than one repository.
+
+Create a use case in exactly two situations: **(1)** a ViewModel method that uses **more than two repositories** (orchestration that does not belong in the presentation layer), and **(2)** a reusable domain rule/helper worth a named contract (e.g. `NumberedMarkerUseCase`, `SortStopsByDistanceUseCase`, `TrimRoutePathUseCase`, `CalculateGeographicDistanceUseCase`). Theme code is **never** a use case. See [Use Cases](#-use-cases) for the full rule.
 
 ### 1. **Presentation Layer**
 
@@ -354,6 +356,7 @@ Route<AppRoute> onGenerateAppRoute(AppRoute settings) {
 - Define business entities
 - Declare repository contracts (interfaces)
 - Contain pure business rules (framework-independent)
+- Encapsulate reusable operations as use cases (see [Use Cases](#-use-cases))
 
 #### Components:
 
@@ -445,6 +448,75 @@ class AppService {
 ---
 
 ## 🔧 Implemented Design Patterns
+
+## 📦 Use Cases
+
+A **use case** is a single, well-named domain operation that the presentation layer can call without knowing which repositories or rules it orchestrates. It lives in the **domain layer**, depends only on repository **contracts** (never on `RepositoryImpl` or `getIt`), and returns `Result<T>` so errors propagate explicitly — the same pattern used everywhere else in the app.
+
+### When to create a use case
+
+Create a use case in exactly **two** situations:
+
+1. **A ViewModel method uses more than two repositories.**
+
+   When a feature function ends up orchestrating more than two repositories (e.g. "compute what the user sees" combining auth, location and map data), extract that orchestration into a use case instead of letting the ViewModel wire repositories together. The ViewModel keeps a single `execute()` entry point and stays readable.
+
+2. **A reusable domain rule or pure helper deserves a named contract.**
+
+   Domain utilities that encapsulate business logic used by a feature — such as `NumberedMarkerUseCase`, `SortStopsByDistanceUseCase`, `TrimRoutePathUseCase` and `CalculateGeographicDistanceUseCase` — are modeled as use cases so they have a clear contract, live in the domain layer and are unit-testable in isolation.
+
+### When NOT to create a use case
+
+- **Never create use cases for the theme.** Design-system tokens, theme building, `AppBreakpoints` and theme repositories stay out of the use-case world: they are configuration/design code, not domain operations.
+- Do not create a use case for a single repository call that the ViewModel can invoke directly through the repository contract.
+- Do not create speculative use cases without a real consumer. Promote a helper to a use case only when it is actually used by a feature (same rule as promoting widgets).
+
+### Structure
+
+- Live in `lib/modules/<module>/domain/usecases/<use_case_name>.dart`.
+- Use cases are **never instantiated by the View/widget**: the ViewModel is the only presentation entry point that resolves them (via DI) — the View interacts with them only through ViewModel methods.
+- Framework-bound use cases (e.g. `NumberedMarkerUseCase`, which depends on the Google Maps SDK `BitmapDescriptor`) stay in the presenter as `lib/modules/<module>/presenter/usecases/<use_case_name>.dart` — the domain layer must remain framework-independent.
+- Expose a single public method `execute(...)`.
+- Depend on repository interfaces (contracts); never on `RepositoryImpl` or `getIt`.
+- Return `Result<T>` and follow the [Typed Result Switch Rule](#-typed-result-switch-rule) when orchestrating repositories.
+
+### Example
+
+```dart
+// lib/modules/map/domain/usecases/get_user_route_use_case.dart
+class GetUserRouteUseCase {
+  GetUserRouteUseCase(this._mapRepository, this._locationRepository);
+
+  final MapRepository _mapRepository;
+  final LocationRepository _locationRepository;
+
+  Future<Result<RouteEntity>> execute(RouteRequestEntity request) async {
+    final origin = _locationRepository.startPoint.value;
+    if (origin == null) {
+      return const Result.error(LocationUnavailableFailure());
+    }
+    return _mapRepository.computeRoute(
+      RouteRequestEntity(addresses: request.addresses, origin: origin),
+    );
+  }
+}
+```
+
+### ViewModel usage
+
+```dart
+class MapViewmodel extends ChangeNotifier {
+  MapViewmodel(this._getUserRoute);
+
+  final GetUserRouteUseCase _getUserRoute;
+
+  late final getRouteCommand = Command1<RouteEntity, RouteRequestEntity>(
+    _getUserRoute.execute,
+  );
+}
+```
+
+---
 
 ## 📌 Single Source of Truth
 

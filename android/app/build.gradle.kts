@@ -1,8 +1,31 @@
+import java.util.Base64
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// O Flutter repassa os `--dart-define` para o build Android como uma lista
+// separada por vírgula de pares KEY=VALUE codificados em base64.
+val dartDefines: List<String> =
+    (project.findProperty("dart-defines") as String? ?: "")
+        .split(",")
+        .mapNotNull { encoded ->
+            runCatching { String(Base64.getDecoder().decode(encoded)) }.getOrNull()
+        }
+
+// Mesma GOOGLE_MAPS_API_KEY usada no Dart (AppConfig), agora para o meta-data
+// com.google.android.geo.API_KEY do Google Maps Android SDK.
+//
+// Sem a chave o build **compila mesmo assim** (placeholder vazio): o mapa
+// exibirá uma mensagem de erro do SDK, mas o restante do app funciona —
+// rotas/geocoding usam a chave pelo lado Dart com erro tratado pelo Result.
+val mapsApiKey: String =
+    dartDefines
+        .firstOrNull { it.startsWith("GOOGLE_MAPS_API_KEY=") }
+        ?.substringAfter("=")
+        ?: ""
 
 android {
     namespace = "com.example.spixs_tecnologia"
@@ -27,6 +50,10 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        // Substitui o placeholder ${GOOGLE_MAPS_API_KEY} do AndroidManifest.xml.
+        // O placeholder é SEMPRE registrado (mesmo vazio), evitando a falha
+        // do manifest merger quando o build roda sem `--dart-define`.
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {

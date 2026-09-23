@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:spixs_tecnologia/app_dependency_injection.dart';
 
-import '../../../app_dependency_injection.dart';
-import '../../../app_routes.dart';
+import '../../../../app_routes.dart';
+import '../widgets/auth_lock_screen.dart';
 import 'home_viewmodel.dart';
-import 'widgets/auth_lock_screen.dart';
 
 /// Home screen entry point.
 ///
