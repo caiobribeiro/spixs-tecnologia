@@ -5,7 +5,10 @@
       "name": "Flutter",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart"
+      "program": "lib/main.dart",
+      // Injetar as chaves de API (Google Places/Maps) no build.
+      // Requer env.json (copie de env.example.json); veja README.md.
+      "toolArgs": ["--dart-define-from-file=env.json"]
     }
   ]
 }
