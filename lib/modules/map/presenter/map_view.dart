@@ -16,12 +16,20 @@ import 'widgets/location_warning_card.dart';
 
 /// Map screen entry point.
 ///
-/// Renders the Google Map centered on the user's current location, marked
-/// as the route **start point**. When a route has been computed it also
-/// draws the optimized polyline, numbered waypoint markers and a GPS
-/// marker that moves as the device location updates.
+/// Receives the addresses collected on the route form ([addresses]) and
+/// renders the Google Map centered on the user's current location, marked
+/// as the route **start point**. On entry the route is computed **with the
+/// user's location as origin** (plus the form addresses as optimized stops):
+/// while it loads, a loading overlay is shown; when ready, the map draws the
+/// optimized polyline, numbered stop markers and a GPS marker that moves as
+/// the device location updates. The user's origin only uses the user marker
+/// (never a numbered one).
 class MapView extends StatefulWidget {
-  const MapView({super.key});
+  const MapView({super.key, this.addresses});
+
+  /// Endereços preenchidos no formulário de rotas (A, B, C...), que viram
+  /// pontos de parada da rota calculada a partir da localização do usuário.
+  final List<String>? addresses;
 
   @override
   State<MapView> createState() => _MapViewState();
@@ -48,6 +56,9 @@ class _MapViewState extends State<MapView> {
     _viewmodel.startPoint.addListener(_onStartPointChanged);
     _viewmodel.route.addListener(_onRouteChanged);
     _generateWaypointIcons();
+    // Entrada do mapa: repassa os endereços do formulário (a rota só é
+    // calculada quando a localização do usuário chega) e pede a localização.
+    unawaited(_viewmodel.initializeRoute(widget.addresses ?? const []));
     _viewmodel.initializeLocation();
   }
 
@@ -83,7 +94,10 @@ class _MapViewState extends State<MapView> {
     });
   }
 
-  /// Generates numbered marker icons for every waypoint in the current route.
+  /// Generates numbered marker icons for every stop in the current route.
+  ///
+  /// Quando a rota começa na localização do usuário ([RouteEntity.userOrigin]),
+  /// essa origem não recebe ícone numerado — o marcador do usuário é o GPS.
   Future<void> _generateWaypointIcons() async {
     final route = _viewmodel.route.value;
     if (route == null) {
@@ -91,10 +105,11 @@ class _MapViewState extends State<MapView> {
       return;
     }
 
+    final markerOffset = route.startsFromUserLocation ? 1 : 0;
     final futures = <Future<void>>[];
-    for (var i = 0; i < route.waypoints.length; i++) {
+    for (var i = markerOffset; i < route.waypoints.length; i++) {
       futures.add(
-        MapMarkerHelper.numberedMarker(i + 1).then((icon) {
+        MapMarkerHelper.numberedMarker(i - markerOffset + 1).then((icon) {
           _numberedIcons[i] = icon;
         }),
       );
@@ -121,10 +136,13 @@ class _MapViewState extends State<MapView> {
       );
     }
 
-    // Marcadores dos waypoints na ordem otimizada, com numeração.
+    // Marcadores dos pontos de parada na ordem otimizada, com numeração.
+    // A origem do usuário (quando a rota começa nela) só tem o marcador GPS.
     if (route != null) {
-      for (var i = 0; i < route.waypoints.length; i++) {
+      final markerOffset = route.startsFromUserLocation ? 1 : 0;
+      for (var i = markerOffset; i < route.waypoints.length; i++) {
         final waypoint = route.waypoints[i];
+        final stopNumber = i - markerOffset + 1;
         markers.add(
           Marker(
             markerId: MarkerId('waypoint_$i'),
@@ -137,7 +155,7 @@ class _MapViewState extends State<MapView> {
                   BitmapDescriptor.hueRed,
                 ),
             infoWindow: InfoWindow(
-              title: '${i + 1}º parada',
+              title: '$stopNumberº parada',
               snippet: waypoint.address,
             ),
             zIndexInt: 1,
@@ -192,6 +210,9 @@ class _MapViewState extends State<MapView> {
                   ),
                   _buildLocationStatusOverlay(),
                   _buildRouteOrderOverlay(route),
+                  // Por cima dos demais: visível mesmo com rota anterior ainda
+                  // renderizada enquanto a nova é recalculada.
+                  _buildRouteLoadingOverlay(),
                 ],
               );
             },
@@ -201,11 +222,61 @@ class _MapViewState extends State<MapView> {
     );
   }
 
+  /// Overlay exibido enquanto a rota otimizada (com a localização do usuário
+  /// como origem) é calculada na entrada do mapa.
+  Widget _buildRouteLoadingOverlay() {
+    return AnimatedBuilder(
+      animation: _viewmodel.getRouteCommand,
+      builder: (context, _) {
+        if (!_viewmodel.getRouteCommand.running) {
+          return const SizedBox.shrink();
+        }
+        return Align(
+          alignment: Alignment.topCenter,
+          child: SafeArea(
+            child: Container(
+              margin: const EdgeInsets.all(AppSpacing.space3),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.space3,
+                vertical: AppSpacing.space2,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface200,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                  const SizedBox(width: AppSpacing.space2),
+                  Text(
+                    'Calculando melhor rota...',
+                    style: AppTypography.caption,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   /// Overlay que exibe a ordem otimizada dos pontos com numeração.
+  ///
+  /// A origem do usuário (quando a rota começa nela) não entra na lista,
+  /// pois ela já é representada pelo marcador de localização do usuário.
   Widget _buildRouteOrderOverlay(RouteEntity? route) {
     if (route == null) {
       return const SizedBox.shrink();
     }
+
+    final markerOffset = route.startsFromUserLocation ? 1 : 0;
 
     return Align(
       alignment: Alignment.topCenter,
@@ -234,7 +305,7 @@ class _MapViewState extends State<MapView> {
                 style: AppTypography.bodyStrong,
               ),
               const SizedBox(height: AppSpacing.space2),
-              for (var i = 0; i < route.waypoints.length; i++)
+              for (var i = markerOffset; i < route.waypoints.length; i++)
                 Padding(
                   padding: const EdgeInsets.only(bottom: AppSpacing.space1),
                   child: Row(
@@ -250,7 +321,7 @@ class _MapViewState extends State<MapView> {
                         ),
                         alignment: Alignment.center,
                         child: Text(
-                          '${i + 1}',
+                          '${i - markerOffset + 1}',
                           style: AppTypography.caption.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,

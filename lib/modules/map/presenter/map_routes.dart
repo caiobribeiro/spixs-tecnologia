@@ -24,7 +24,9 @@ Route<void> buildMapRoute(MapRoute route, {RouteSettings? settings}) {
     case MapRoute.map:
       return MaterialPageRoute<void>(
         settings: settings,
-        builder: (_) => const MapView(),
+        builder: (_) => MapView(
+          addresses: settings?.arguments as List<String>?,
+        ),
       );
   }
 }

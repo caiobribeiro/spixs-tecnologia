@@ -10,9 +10,11 @@ class RouteModel {
     required this.distanceMeters,
     required this.durationSeconds,
     required this.optimizedIntermediateWaypointIndex,
+    this.userOrigin,
   });
 
   factory RouteModel.fromMap(Map<String, dynamic> map) {
+    final userOrigin = map['userOrigin'] as Map<String, dynamic>?;
     return RouteModel(
       waypoints: (map['waypoints'] as List<dynamic>)
           .map(
@@ -29,6 +31,7 @@ class RouteModel {
           (map['optimizedIntermediateWaypointIndex'] as List<dynamic>)
               .map((index) => (index as num).toInt())
               .toList(),
+      userOrigin: userOrigin == null ? null : GeoPointModel.fromMap(userOrigin),
     );
   }
 
@@ -48,6 +51,10 @@ class RouteModel {
   /// Order the API applied to the intermediate waypoints.
   final List<int> optimizedIntermediateWaypointIndex;
 
+  /// A localização do usuário usada como origem da rota, quando a rota foi
+  /// calculada a partir dela (marcador do usuário, sem número).
+  final GeoPointModel? userOrigin;
+
   /// Origin stop, derived from the SSOT (first waypoint).
   GeoPointModel get origin => waypoints.first.location;
 
@@ -61,6 +68,7 @@ class RouteModel {
       'distanceMeters': distanceMeters,
       'durationSeconds': durationSeconds,
       'optimizedIntermediateWaypointIndex': optimizedIntermediateWaypointIndex,
+      'userOrigin': userOrigin?.toMap(),
     };
   }
 
@@ -72,6 +80,7 @@ class RouteModel {
       distanceMeters: distanceMeters,
       durationSeconds: durationSeconds,
       optimizedIntermediateWaypointIndex: optimizedIntermediateWaypointIndex,
+      userOrigin: userOrigin?.toEntity(),
     );
   }
 
