@@ -12,13 +12,13 @@ A [arquitetura](https://docs.flutter.dev/app-architecture) usada é a sugerida p
 Os packages usados no projeto.
 Gerenciamento de estado foi feito todo nativo.
 
-- [Google Maps Flutter](https://pub.dev/packages/google_maps_flutter/install)
-- [Geolocator](https://pub.dev/packages/geolocator) — permissão de localização e status do GPS
-- [Local Auth](https://pub.dev/packages/local_auth)
-- [Get It](https://pub.dev/packages/get_it)
-- [Connectivity Plus](https://pub.dev/packages/connectivity_plus)
-- [Flutter_ Polyline Points](https://pub.dev/packages/flutter_polyline_points)
-- [Dio](https://pub.dev/packages/dio)
+- [Google Maps Flutter](https://pub.dev/packages/google_maps_flutter/install) - Google Maps Widget;
+- [Geolocator](https://pub.dev/packages/geolocator) — permissão de localização e status do GPS;
+- [Local Auth](https://pub.dev/packages/local_auth) - Autenticação local com dispositivo;
+- [Get It](https://pub.dev/packages/get_it) - Injeção de depdendencia
+- [Connectivity Plus](https://pub.dev/packages/connectivity_plus) - Acompnhar status da conexão;
+- [Flutter_ Polyline Points](https://pub.dev/packages/flutter_polyline_points) - Desenhar linhas e formas no Google Maps;
+- [Dio](https://pub.dev/packages/dio) - Package HTTP; 
 
 ## Chaves de API (Google Places / Maps)
 
