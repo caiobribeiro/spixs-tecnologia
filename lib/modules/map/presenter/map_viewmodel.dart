@@ -10,6 +10,7 @@ import '../domain/entity/place_entity.dart';
 import '../domain/entity/route_entity.dart';
 import '../domain/entity/route_request_entity.dart';
 import '../domain/location_access_failure.dart';
+import '../domain/route_path_trimmer.dart';
 import '../domain/repository/location_repository.dart';
 import '../domain/repository/map_repository.dart';
 
@@ -42,6 +43,11 @@ class MapViewmodel extends ChangeNotifier {
   final ValueNotifier<LocationAccessStatus> locationStatus =
       ValueNotifier<LocationAccessStatus>(LocationAccessStatus.checking);
 
+  /// Indica se a navegação está ativa (botão "Iniciar" pressionado): a
+  /// partir daí a câmera acompanha o usuário continuamente e a polyline
+  /// passa a mostrar apenas o caminho à frente ([remainingPolylinePoints]).
+  final ValueNotifier<bool> navigating = ValueNotifier<bool>(false);
+
   late final initializeLocationCommand = Command0<GeoPointEntity>(
     _requestLocationAccess,
   );
@@ -57,6 +63,27 @@ class MapViewmodel extends ChangeNotifier {
   /// O ponto de partida (localização atual) — SSOT vive no
   /// [LocationRepositoryImpl], acessado pelo contrato [LocationRepository].
   ValueNotifier<GeoPointEntity?> get startPoint => _locationRepository.startPoint;
+
+  /// Pontos da polyline ainda à frente do usuário, derivados do SSOT da
+  /// rota e do SSOT da posição atual.
+  ///
+  /// Enquanto a navegação não está ativa devolve a geometria completa da
+  /// rota; depois de [startNavigation], remove a parte já navegada (até o
+  /// ponto da polyline mais próximo da posição do usuário).
+  List<GeoPointEntity> get remainingPolylinePoints {
+    final route = _repository.route.value;
+    if (route == null) {
+      return const [];
+    }
+    final position = startPoint.value;
+    if (!navigating.value || position == null) {
+      return route.polylinePoints;
+    }
+    return RoutePathTrimmer.remaining(
+      points: route.polylinePoints,
+      current: position,
+    );
+  }
 
   /// The latest places loaded by [getPlacesCommand], if any.
   List<PlaceEntity>? get places {
@@ -83,6 +110,19 @@ class MapViewmodel extends ChangeNotifier {
   /// posição atual). Chamado ao abrir a tela e como retry genérico.
   Future<void> initializeLocation() {
     return initializeLocationCommand.execute();
+  }
+
+  /// Starts navigation from the user's current location (botão "Iniciar").
+  ///
+  /// A partir daí o stream de localização continua rastreando a posição
+  /// ([startPoint]), o mapa acompanha o usuário continuamente e a polyline
+  /// mostra apenas o trecho ainda à frente ([remainingPolylinePoints]).
+  void startNavigation() {
+    if (navigating.value) {
+      return;
+    }
+    navigating.value = true;
+    _locationRepository.startLocationUpdates();
   }
 
   /// Ação do aviso "GPS desligado": abre as configurações de localização
@@ -156,6 +196,7 @@ class MapViewmodel extends ChangeNotifier {
   void dispose() {
     _locationRepository.stopLocationUpdates();
     locationStatus.dispose();
+    navigating.dispose();
     super.dispose();
   }
 }

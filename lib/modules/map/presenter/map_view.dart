@@ -13,6 +13,7 @@ import '../domain/entity/route_entity.dart';
 import 'helpers/map_marker_helper.dart';
 import 'map_viewmodel.dart';
 import 'widgets/location_warning_card.dart';
+import 'widgets/start_navigation_button.dart';
 
 /// Map screen entry point.
 ///
@@ -24,6 +25,11 @@ import 'widgets/location_warning_card.dart';
 /// optimized polyline, numbered stop markers and a GPS marker that moves as
 /// the device location updates. The user's origin only uses the user marker
 /// (never a numbered one).
+///
+/// Once the route is ready an **Iniciar** button is shown: on tap,
+/// navigation starts — the camera follows the user continuously via the
+/// location stream and the polyline is trimmed to the path still ahead
+/// (the already traveled part is removed).
 class MapView extends StatefulWidget {
   const MapView({super.key, this.addresses});
 
@@ -50,6 +56,9 @@ class _MapViewState extends State<MapView> {
     zoom: 14,
   );
 
+  /// Se a câmera já foi centralizada na primeira fixação de localização.
+  bool _hasCenteredOnUser = false;
+
   @override
   void initState() {
     super.initState();
@@ -71,18 +80,27 @@ class _MapViewState extends State<MapView> {
     super.dispose();
   }
 
-  /// Centraliza a câmera na localização atual assim que ela chega ao SSOT.
+  /// Centraliza a câmera na localização atual assim que ela chega ao SSOT
+  /// (primeira fixação) e, durante a navegação, acompanha o usuário
+  /// continuamente a cada atualização do stream de localização.
   void _onStartPointChanged() {
     final point = _viewmodel.startPoint.value;
     if (point == null) {
       return;
     }
-    _mapController?.animateCamera(
-      CameraUpdate.newLatLngZoom(
-        LatLng(point.latitude, point.longitude),
-        15,
-      ),
+    final cameraUpdate = CameraUpdate.newLatLngZoom(
+      LatLng(point.latitude, point.longitude),
+      15,
     );
+    if (!_hasCenteredOnUser) {
+      _hasCenteredOnUser = true;
+      _mapController?.animateCamera(cameraUpdate);
+      return;
+    }
+    // Navegação ativa: a câmera segue a posição do usuário em tempo real.
+    if (_viewmodel.navigating.value) {
+      _mapController?.animateCamera(cameraUpdate);
+    }
   }
 
   /// Rebuilds markers when the route changes.
@@ -167,15 +185,17 @@ class _MapViewState extends State<MapView> {
     return markers;
   }
 
-  /// Polyline traçada sobre o mapa seguindo a rota otimizada.
-  Set<Polyline> _buildPolylines(RouteEntity? route) {
-    if (route == null || route.polylinePoints.isEmpty) {
+  /// Polyline desenhada sobre o mapa. Durante a navegação recebe somente o
+  /// trecho ainda à frente do usuário ([MapViewmodel.remainingPolylinePoints]);
+  /// antes do início, a rota completa.
+  Set<Polyline> _buildPolylines(List<GeoPointEntity> points) {
+    if (points.isEmpty) {
       return const {};
     }
     return {
       Polyline(
         polylineId: const PolylineId('optimizedRoute'),
-        points: route.polylinePoints
+        points: points
             .map((p) => LatLng(p.latitude, p.longitude))
             .toList(),
         color: AppColors.brand,
@@ -196,24 +216,37 @@ class _MapViewState extends State<MapView> {
           return ValueListenableBuilder<RouteEntity?>(
             valueListenable: _viewmodel.route,
             builder: (context, route, _) {
-              return Stack(
-                children: [
-                  GoogleMap(
-                    initialCameraPosition: _initialCamera,
-                    onMapCreated: (controller) {
-                      _mapController = controller;
-                      // A localização pode chegar antes do mapa estar pronto.
-                      _onStartPointChanged();
-                    },
-                    markers: _buildMarkers(startPoint, route),
-                    polylines: _buildPolylines(route),
-                  ),
-                  _buildLocationStatusOverlay(),
-                  _buildRouteOrderOverlay(route),
-                  // Por cima dos demais: visível mesmo com rota anterior ainda
-                  // renderizada enquanto a nova é recalculada.
-                  _buildRouteLoadingOverlay(),
-                ],
+              return ValueListenableBuilder<bool>(
+                valueListenable: _viewmodel.navigating,
+                builder: (context, navigating, _) {
+                  return Stack(
+                    children: [
+                      GoogleMap(
+                        initialCameraPosition: _initialCamera,
+                        onMapCreated: (controller) {
+                          _mapController = controller;
+                          // A localização pode chegar antes do mapa estar pronto.
+                          _onStartPointChanged();
+                        },
+                        markers: _buildMarkers(startPoint, route),
+                        polylines: _buildPolylines(
+                          _viewmodel.remainingPolylinePoints,
+                        ),
+                      ),
+                      _buildLocationStatusOverlay(),
+                      _buildRouteOrderOverlay(route),
+                      // Por cima dos demais: visível mesmo com rota anterior ainda
+                      // renderizada enquanto a nova é recalculada.
+                      _buildRouteLoadingOverlay(),
+                      // Botão "Iniciar": só aparece com rota pronta e antes de
+                      // a navegação começar.
+                      if (route != null && !navigating)
+                        StartNavigationButton(
+                          onPressed: _viewmodel.startNavigation,
+                        ),
+                    ],
+                  );
+                },
               );
             },
           );
