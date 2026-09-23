@@ -4,6 +4,9 @@ import 'app_config.dart';
 import 'modules/core/auth/data/services/auth_service.dart';
 import 'modules/core/auth/domain/repository/auth_repository.dart';
 import 'modules/core/auth/domain/repository/auth_repository_impl.dart';
+import 'modules/core/connectivity/data/services/connectivity_service.dart';
+import 'modules/core/connectivity/domain/repository/connectivity_repository.dart';
+import 'modules/core/connectivity/domain/repository/connectivity_repository_impl.dart';
 import 'modules/core/theme/domain/app_theme.dart';
 import 'modules/core/theme/domain/repository/theme_repository.dart';
 import 'modules/core/theme/domain/repository/theme_repository_impl.dart';
@@ -49,6 +52,12 @@ void setupDependencyInjection() {
     () => ThemeRepositoryImpl(AppTheme.build()),
   );
 
+  // ---- Core: connectivity (listener de internet; SSOT no repo) ----
+  getIt.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
+  getIt.registerLazySingleton<ConnectivityRepository>(
+    () => ConnectivityRepositoryImpl(getIt<ConnectivityService>()),
+  );
+
   // ---- Home module ----
   getIt.registerLazySingleton<HomeService>(() => HomeService());
   getIt.registerLazySingleton<HomeRepository>(
@@ -65,7 +74,10 @@ void setupDependencyInjection() {
     () => HomeViewmodel(getIt<HomeRepository>(), getIt<AuthRepository>()),
   );
   getIt.registerFactory<RoutesFormViewmodel>(
-    () => RoutesFormViewmodel(placesRepository: getIt<PlacesRepository>()),
+    () => RoutesFormViewmodel(
+      placesRepository: getIt<PlacesRepository>(),
+      connectivityRepository: getIt<ConnectivityRepository>(),
+    ),
   );
 
   // ---- Map module ----
@@ -95,6 +107,7 @@ void setupDependencyInjection() {
       getIt<DetectRouteDeviationUseCase>(),
       getIt<FindUnvisitedStopsUseCase>(),
       getIt<DetectRouteCompletionUseCase>(),
+      connectivityRepository: getIt<ConnectivityRepository>(),
     ),
   );
 
