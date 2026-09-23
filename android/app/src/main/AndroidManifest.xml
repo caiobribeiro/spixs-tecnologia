@@ -3,6 +3,9 @@
          para dispositivos mais antigos (USE_FINGERPRINT). -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
+    <!-- Autocomplete de endereços (Google Places API) em release.
+         Nos builds debug/profile a permissão já existe via manifest próprio. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="spixs_tecnologia"
         android:name="${applicationName}"
