@@ -17,7 +17,7 @@ class DetectRouteDeviationUseCase {
 
   /// Distância (em metros) a partir da qual o usuário é considerado fora da
   /// rota planejada — threshold de desvio.
-  static const double deviationThresholdMeters = 150;
+  static const double deviationThresholdMeters = 50;
 
   /// Whether [position] is farther than [thresholdMeters] from the nearest
   /// point of [routePoints]. An empty geometry never triggers a deviation
