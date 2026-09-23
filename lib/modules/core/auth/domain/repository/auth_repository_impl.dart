@@ -4,11 +4,6 @@ import '../../../../../shared/patterns/result.dart';
 import '../../data/services/auth_service.dart';
 import 'auth_repository.dart';
 
-/// Concrete [AuthRepository].
-///
-/// Owns the single source of truth for the authentication state
-/// ([isAuthenticated]) and delegates the native prompt to the [AuthService]
-/// (data layer).
 class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._service);
 
@@ -21,9 +16,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<bool>> authenticate() async {
-    // O gate nativo (local_auth) só funciona em Android/iOS. Nas demais
-    // plataformas o acesso é liberado para não quebrar desenvolvimento,
-    // testes e builds web/desktop.
     if (!_service.isSupportedPlatform) {
       _isAuthenticated.value = true;
       return Result.ok(true);

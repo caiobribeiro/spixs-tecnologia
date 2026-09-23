@@ -1,6 +1,5 @@
 import 'geo_point_entity.dart';
 
-/// A point of interest shown on the map.
 class PlaceEntity {
   const PlaceEntity({
     required this.id,
@@ -11,7 +10,6 @@ class PlaceEntity {
   final String id;
   final String name;
 
-  /// Geographic location of the place.
   final GeoPointEntity location;
 
   @override

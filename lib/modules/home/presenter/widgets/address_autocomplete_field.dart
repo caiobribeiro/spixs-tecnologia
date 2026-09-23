@@ -6,12 +6,6 @@ import '../../../core/theme/domain/tokens/app_spacing.dart';
 import '../../../core/theme/domain/tokens/app_typography.dart';
 import '../../domain/entity/place_suggestion_entity.dart';
 
-/// Campo de endereço com autocomplete do Google Places (design system Rota).
-///
-/// Componente de apresentação puro: recebe o controller, o validador, as
-/// sugestões e expõe as interações via callbacks. Não resolve `getIt` nem
-/// toca em repositórios — a busca e o estado das sugestões vivem no
-/// `RoutesFormViewmodel`.
 class AddressAutocompleteField extends StatelessWidget {
   const AddressAutocompleteField({
     super.key,
@@ -39,18 +33,15 @@ class AddressAutocompleteField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Campo base: surface-200 · border · radius-md (tema global).
         TextFormField(
           controller: controller,
-          // Só valida depois da PRIMEIRA interação do usuário com o campo:
-          // no carregamento da tela nenhum erro aparece, mesmo vazio.
+
           autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: validator,
           onChanged: onChanged,
           decoration: InputDecoration(
-            // "Ponto A", "Ponto B", "Ponto C"... (endereço não preenchido).
             hintText: hintText,
-            // Remove pontos adicionados; o mínimo A/B/C é fixo.
+
             suffixIcon: removable
                 ? IconButton(
                     icon: const Icon(Icons.close),
@@ -60,7 +51,7 @@ class AddressAutocompleteField extends StatelessWidget {
                 : null,
           ),
         ),
-        // Sugestões do autocomplete: cards surface-200 · radius-md · border.
+
         ..._buildSuggestions(),
       ],
     );
@@ -82,9 +73,10 @@ class AddressAutocompleteField extends StatelessWidget {
           ),
           child: ListTile(
             dense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: AppSpacing.space3),
-            // main-text em body-strong, secundário em caption (ink-muted).
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.space3,
+            ),
+
             title: Text(
               suggestions[i].mainText,
               maxLines: 1,
@@ -102,7 +94,8 @@ class AddressAutocompleteField extends StatelessWidget {
             onTap: () => onSelected(suggestions[i]),
           ),
         ),
-        if (i < suggestions.length - 1) const SizedBox(height: AppSpacing.space1),
+        if (i < suggestions.length - 1)
+          const SizedBox(height: AppSpacing.space1),
       ],
     ];
   }

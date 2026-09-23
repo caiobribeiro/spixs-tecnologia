@@ -1,7 +1,6 @@
 import '../../domain/entity/place_entity.dart';
 import 'geo_point_model.dart';
 
-/// Data Transfer Object for a point of interest.
 class PlaceModel {
   const PlaceModel({
     required this.id,
@@ -22,20 +21,11 @@ class PlaceModel {
   final GeoPointModel location;
 
   Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'location': location.toMap(),
-    };
+    return {'id': id, 'name': name, 'location': location.toMap()};
   }
 
-  /// Converts this DTO into the domain entity.
   PlaceEntity toEntity() {
-    return PlaceEntity(
-      id: id,
-      name: name,
-      location: location.toEntity(),
-    );
+    return PlaceEntity(id: id, name: name, location: location.toEntity());
   }
 
   @override

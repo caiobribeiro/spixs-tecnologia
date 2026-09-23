@@ -5,20 +5,9 @@ import '../../../core/theme/domain/tokens/app_radii.dart';
 import '../../../core/theme/domain/tokens/app_spacing.dart';
 import '../../../core/theme/domain/tokens/app_typography.dart';
 
-/// Banner shown over the map after the route was **automatically
-/// recalculated** (the user deviated from the planned path and the
-/// navigation recomputed the route through the stops still to visit).
-///
-/// Pure component: receives the recalculation count from the parent View —
-/// it never touches repositories, services or the ViewModel.
 class RouteRecalculatedBanner extends StatelessWidget {
-  const RouteRecalculatedBanner({
-    super.key,
-    required this.recalculationCount,
-  });
+  const RouteRecalculatedBanner({super.key, required this.recalculationCount});
 
-  /// Number of automatic recalculations already performed during this
-  /// navigation (drives the message: without the count on the first run).
   final int recalculationCount;
 
   @override

@@ -4,11 +4,6 @@ import '../../data/services/places_service.dart';
 import '../entity/place_suggestion_entity.dart';
 import 'places_repository.dart';
 
-/// Concrete [PlacesRepository].
-///
-/// Delegates data access to the [PlacesService] (data layer) and converts
-/// the `Model`s returned by the service into domain entities, handling
-/// errors with the typed `Result<T>` switch rule.
 class PlacesRepositoryImpl implements PlacesRepository {
   PlacesRepositoryImpl(this._service);
 

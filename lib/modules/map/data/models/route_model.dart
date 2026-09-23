@@ -2,7 +2,6 @@ import '../../domain/entity/route_entity.dart';
 import 'geo_point_model.dart';
 import 'route_waypoint_model.dart';
 
-/// Data Transfer Object for a route computed by the Google Routes API.
 class RouteModel {
   const RouteModel({
     required this.waypoints,
@@ -35,30 +34,20 @@ class RouteModel {
     );
   }
 
-  /// Stops in the order the route visits them
-  /// (origin → intermediate stops → destination).
   final List<RouteWaypointModel> waypoints;
 
-  /// Decoded polyline describing the route geometry.
   final List<GeoPointModel> polylinePoints;
 
-  /// Total distance of the route in meters.
   final double distanceMeters;
 
-  /// Estimated total travel time in seconds.
   final int durationSeconds;
 
-  /// Order the API applied to the intermediate waypoints.
   final List<int> optimizedIntermediateWaypointIndex;
 
-  /// A localização do usuário usada como origem da rota, quando a rota foi
-  /// calculada a partir dela (marcador do usuário, sem número).
   final GeoPointModel? userOrigin;
 
-  /// Origin stop, derived from the SSOT (first waypoint).
   GeoPointModel get origin => waypoints.first.location;
 
-  /// Destination stop, derived from the SSOT (last waypoint).
   GeoPointModel get destination => waypoints.last.location;
 
   Map<String, dynamic> toMap() {
@@ -72,7 +61,6 @@ class RouteModel {
     };
   }
 
-  /// Converts this DTO into the domain entity.
   RouteEntity toEntity() {
     return RouteEntity(
       waypoints: waypoints.map((waypoint) => waypoint.toEntity()).toList(),

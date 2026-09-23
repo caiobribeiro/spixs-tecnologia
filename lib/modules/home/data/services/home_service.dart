@@ -3,17 +3,12 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import '../../../../shared/patterns/result.dart';
 import '../models/home_summary_model.dart';
 
-/// Home module data source.
-///
-/// Communicates with the device network state through `connectivity_plus`
-/// and returns a [Result] encapsulating success or failure.
 class HomeService {
   HomeService({Connectivity? connectivity})
-      : _connectivity = connectivity ?? Connectivity();
+    : _connectivity = connectivity ?? Connectivity();
 
   final Connectivity _connectivity;
 
-  /// Reads the current connectivity state and builds a [HomeSummaryModel].
   Future<Result<HomeSummaryModel>> getSummary() async {
     try {
       final results = await _connectivity.checkConnectivity();
@@ -23,9 +18,7 @@ class HomeService {
         HomeSummaryModel(
           isConnected: isConnected,
           connectionLabel: _describe(results),
-          message: isConnected
-              ? 'You are online'
-              : 'You are offline',
+          message: isConnected ? 'You are online' : 'You are offline',
         ),
       );
     } on Exception catch (error) {
@@ -33,7 +26,6 @@ class HomeService {
     }
   }
 
-  /// Maps the list of connectivity results into a single readable label.
   String _describe(List<ConnectivityResult> results) {
     if (results.contains(ConnectivityResult.wifi)) return 'Wi-Fi';
     if (results.contains(ConnectivityResult.mobile)) return 'Mobile data';

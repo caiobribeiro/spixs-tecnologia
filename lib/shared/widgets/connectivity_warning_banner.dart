@@ -5,19 +5,9 @@ import '../../modules/core/theme/domain/tokens/app_radii.dart';
 import '../../modules/core/theme/domain/tokens/app_spacing.dart';
 import '../../modules/core/theme/domain/tokens/app_typography.dart';
 
-/// Banner de "Sem conexão com a internet" (design system Rota).
-///
-/// Usado por duas telas — formulário de rotas e mapa — por isso vive em
-/// `shared/widgets/`. Componente puro: recebe apenas a flag [compact]; não
-/// toca em repositórios, serviços ou ViewModels.
-///
-/// - Sem conexão → `danger` (erros / sem internet no design system).
-/// - [compact] (mapa): linha única discreta; padrão (formulário): destaque
-///   em largura total.
 class ConnectivityWarningBanner extends StatelessWidget {
   const ConnectivityWarningBanner({super.key, this.compact = false});
 
-  /// Modo compacto para o mapa: banner pequeno, sem ocupar largura total.
   final bool compact;
 
   @override

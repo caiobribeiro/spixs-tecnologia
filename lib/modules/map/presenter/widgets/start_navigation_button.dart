@@ -3,16 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../modules/core/theme/domain/app_theme.dart';
 import '../../../../modules/core/theme/domain/tokens/app_spacing.dart';
 
-/// The **Iniciar** button shown over the map once a route is ready.
-///
-/// Tapping it starts navigation: continuous location tracking, camera
-/// following the user and the polyline trimmed to the path ahead. Pure
-/// component — receives the action callback from the parent (View), never
-/// touching repositories, services or the ViewModel.
 class StartNavigationButton extends StatelessWidget {
   const StartNavigationButton({super.key, required this.onPressed});
 
-  /// Action triggered when the user taps [Iniciar].
   final VoidCallback onPressed;
 
   @override
