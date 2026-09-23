@@ -7,6 +7,7 @@ import 'package:spixs_tecnologia/modules/map/data/models/geo_point_model.dart';
 import 'package:spixs_tecnologia/modules/map/data/models/route_model.dart';
 import 'package:spixs_tecnologia/modules/map/data/models/route_waypoint_model.dart';
 import 'package:spixs_tecnologia/modules/map/data/services/map_service.dart';
+import 'package:spixs_tecnologia/modules/map/domain/entity/geo_point_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_request_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/repository/map_repository_impl.dart';
@@ -16,11 +17,17 @@ import 'package:spixs_tecnologia/shared/patterns/result.dart';
 class _FakeMapService extends MapService {
   _FakeMapService(this._handler) : super(apiKey: '');
 
-  final Future<Result<RouteModel>> Function(List<String> addresses) _handler;
+  final Future<Result<RouteModel>> Function(
+    List<String> addresses, {
+    GeoPointModel? origin,
+  }) _handler;
 
   @override
-  Future<Result<RouteModel>> computeRoute(List<String> addresses) {
-    return _handler(addresses);
+  Future<Result<RouteModel>> computeRoute(
+    List<String> addresses, {
+    GeoPointModel? origin,
+  }) {
+    return _handler(addresses, origin: origin);
   }
 }
 
@@ -46,7 +53,7 @@ void main() {
     test('converte Model em Entity e atualiza a SSOT (route.value)', () async {
       List<String>? receivedAddresses;
       final repository = MapRepositoryImpl(
-        _FakeMapService((addresses) async {
+        _FakeMapService((addresses, {origin}) async {
           receivedAddresses = addresses;
           return Result.ok(_model);
         }),
@@ -76,7 +83,7 @@ void main() {
     test('erro do service não atualiza a SSOT', () async {
       final failure = Exception('Places API error: REQUEST_DENIED');
       final repository = MapRepositoryImpl(
-        _FakeMapService((addresses) async => Result.error(failure)),
+        _FakeMapService((addresses, {origin}) async => Result.error(failure)),
       );
 
       final result = await repository.computeRoute(
@@ -93,7 +100,7 @@ void main() {
 
     test('SSOT mantém a última rota após sucesso seguido de erro', () async {
       final repository = MapRepositoryImpl(
-        _FakeMapService((addresses) async => Result.ok(_model)),
+        _FakeMapService((addresses, {origin}) async => Result.ok(_model)),
       );
       await repository.computeRoute(
         const RouteRequestEntity(addresses: ['Av. A', 'Av. D']),
@@ -103,7 +110,7 @@ void main() {
 
       // O próximo repositório usa um service que agora falha.
       final failingRepository = MapRepositoryImpl(
-        _FakeMapService((addresses) async => Result.error(Exception('boom'))),
+        _FakeMapService((addresses, {origin}) async => Result.error(Exception('boom'))),
       );
       final result = await failingRepository.computeRoute(
         const RouteRequestEntity(addresses: ['Av. A', 'Av. D']),
@@ -111,6 +118,50 @@ void main() {
 
       expect(result, isA<Error<RouteEntity>>());
       expect(failingRepository.route.value, isNull);
+    });
+
+    test('converte a origem do usuário (entity → model) e propaga userOrigin',
+        () async {
+      GeoPointModel? receivedOrigin;
+      final repository = MapRepositoryImpl(
+        _FakeMapService((addresses, {origin}) async {
+          receivedOrigin = origin;
+          return Result.ok(
+            RouteModel(
+              waypoints: _model.waypoints,
+              polylinePoints: _model.polylinePoints,
+              distanceMeters: _model.distanceMeters,
+              durationSeconds: _model.durationSeconds,
+              optimizedIntermediateWaypointIndex:
+                  _model.optimizedIntermediateWaypointIndex,
+              // Igual ao service real: a origem do usuário é propagada.
+              userOrigin: origin,
+            ),
+          );
+        }),
+      );
+      const userLocation = GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
+
+      final result = await repository.computeRoute(
+        const RouteRequestEntity(
+          addresses: ['Av. A', 'Rua B', 'Av. D'],
+          origin: userLocation,
+        ),
+      );
+
+      // Origem convertida para o modelo da camada de dados.
+      expect(receivedOrigin, isNotNull);
+      expect(receivedOrigin!.latitude, -23.5505);
+      expect(receivedOrigin!.longitude, -46.6333);
+
+      switch (result) {
+        case Ok<RouteEntity>(): // userOrigin mapeada para a entidade.
+          expect(result.value.userOrigin, isNotNull);
+          expect(result.value.userOrigin!.latitude, -23.5505);
+          expect(result.value.startsFromUserLocation, isTrue);
+        case Error<RouteEntity>():
+          fail('esperava Ok, recebi erro: ${result.error}');
+      }
     });
   });
 }

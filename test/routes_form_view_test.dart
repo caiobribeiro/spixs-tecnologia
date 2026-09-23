@@ -12,9 +12,7 @@ import 'package:spixs_tecnologia/app_routes.dart';
 import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
 import 'package:spixs_tecnologia/modules/home/domain/repository/places_repository.dart';
 import 'package:spixs_tecnologia/modules/home/presenter/routes_form_view.dart';
-import 'package:spixs_tecnologia/modules/map/domain/repository/map_repository.dart';
 
-import 'fakes/fake_map_repository.dart';
 import 'fakes/fake_places_repository.dart';
 
 void main() {
@@ -171,19 +169,19 @@ void main() {
     expect(find.text('Av. Paulista, 1000'), findsNothing);
   });
 
-  testWidgets('Confirmar rota navega para a tela do mapa (/map)',
+  testWidgets('Confirmar rota navega para o mapa (/map) com os endereços',
       (tester) async {
-    // Rota calculada em segundo plano: fake evita a API real no teste.
-    getIt.registerSingleton<MapRepository>(FakeMapRepository());
-
     // Navigator que registra a rota empurrada sem construir o MapView
-    // (o GoogleMap exige platform view, indisponível em widget tests).
+    // (o GoogleMap exige platform view, indisponível em widget tests). A
+    // rota em si é calculada na entrada do mapa, não aqui no formulário.
     String? pushedRouteName;
+    List<String>? pushedArguments;
     await tester.pumpWidget(
       MaterialApp(
         home: const RoutesFormView(),
         onGenerateRoute: (settings) {
           pushedRouteName = settings.name;
+          pushedArguments = settings.arguments as List<String>?;
           return MaterialPageRoute<void>(
             settings: settings,
             builder: (_) => const Scaffold(body: SizedBox.shrink()),
@@ -199,11 +197,12 @@ void main() {
     await typeAddress(tester, 2, 'Rua C');
     expect(confirmButton(tester).onPressed, isNotNull);
 
-    // Confirma a rota: deve empurrar a rota /map do módulo map.
+    // Confirma: deve empurrar a rota /map repassando os endereços A/B/C.
     await tester.tap(find.byType(ElevatedButton));
     await tester.pumpAndSettle();
 
     expect(pushedRouteName, AppRoute.map.path);
     expect(pushedRouteName, '/map');
+    expect(pushedArguments, orderedEquals(['Rua A', 'Rua B', 'Rua C']));
   });
 }

@@ -5,9 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
 import 'package:spixs_tecnologia/modules/home/presenter/routes_form_viewmodel.dart';
-import 'package:spixs_tecnologia/shared/patterns/result.dart';
 
-import 'fakes/fake_map_repository.dart';
 import 'fakes/fake_places_repository.dart';
 
 void main() {
@@ -213,78 +211,44 @@ void main() {
     });
   });
 
-  group('RoutesFormViewmodel — confirmação de rota (Routes API)', () {
-    test('coleta os endereços do form e solicita a rota à API', () async {
-      final mapRepository = FakeMapRepository();
-      final viewmodel = RoutesFormViewmodel(mapRepository: mapRepository);
+  group('RoutesFormViewmodel — endereços para o mapa', () {
+    test('collectAddresses coleta os endereços preenchidos na ordem do form',
+        () {
+      final viewmodel = RoutesFormViewmodel();
       viewmodel.addressControllers[0].text = 'Av. Paulista, 1000';
       viewmodel.addressControllers[1].text = 'Rua B';
       viewmodel.addressControllers[2].text = 'Rua C';
 
-      viewmodel.confirmRoute();
-      await Future<void>.delayed(Duration.zero);
-
-      expect(mapRepository.computeRouteCalls, 1);
       expect(
-        mapRepository.lastRequest!.addresses,
+        viewmodel.collectAddresses(),
         orderedEquals(['Av. Paulista, 1000', 'Rua B', 'Rua C']),
       );
-      // Resultado aplicado na SSOT do módulo `map`, pronta para a tela.
-      expect(mapRepository.route.value, isNotNull);
     });
 
-    test('pontos adicionados entram como waypoints na ordem do form', () async {
-      final mapRepository = FakeMapRepository();
-      final viewmodel = RoutesFormViewmodel(mapRepository: mapRepository);
+    test('pontos adicionados entram na coleta na ordem do form', () {
+      final viewmodel = RoutesFormViewmodel();
       viewmodel.addAddressField();
       for (var i = 0; i < 4; i++) {
         viewmodel.addressControllers[i].text = 'Endereço ${i + 1}';
       }
 
-      viewmodel.confirmRoute();
-      await Future<void>.delayed(Duration.zero);
-
-      expect(mapRepository.computeRouteCalls, 1);
       expect(
-        mapRepository.lastRequest!.addresses,
-        orderedEquals(
-          ['Endereço 1', 'Endereço 2', 'Endereço 3', 'Endereço 4'],
-        ),
+        viewmodel.collectAddresses(),
+        orderedEquals(['Endereço 1', 'Endereço 2', 'Endereço 3', 'Endereço 4']),
       );
     });
 
-    test('ignora campos vazios ao montar a requisição', () async {
-      final mapRepository = FakeMapRepository();
-      final viewmodel = RoutesFormViewmodel(mapRepository: mapRepository);
+    test('ignora campos vazios (ou só com espaços) ao coletar', () {
+      final viewmodel = RoutesFormViewmodel();
       viewmodel.addressControllers[0].text = 'Av. Paulista, 1000';
       viewmodel.addressControllers[1].text = '   ';
       viewmodel.addressControllers[2].text = 'Rua C';
       viewmodel.addAddressField(); // 4º campo vazio
 
-      viewmodel.confirmRoute();
-      await Future<void>.delayed(Duration.zero);
-
-      expect(mapRepository.computeRouteCalls, 1);
       expect(
-        mapRepository.lastRequest!.addresses,
+        viewmodel.collectAddresses(),
         orderedEquals(['Av. Paulista, 1000', 'Rua C']),
       );
-    });
-
-    test('erro da API não lança exceção e não preenche a SSOT', () async {
-      final mapRepository = FakeMapRepository(
-        routeResult: Result.error(Exception('No routes found')),
-      );
-      final viewmodel = RoutesFormViewmodel(mapRepository: mapRepository);
-      viewmodel.addressControllers[0].text = 'Av. A';
-      viewmodel.addressControllers[1].text = 'Rua B';
-      viewmodel.addressControllers[2].text = 'Rua C';
-
-      viewmodel.confirmRoute();
-      await Future<void>.delayed(Duration.zero);
-
-      expect(mapRepository.computeRouteCalls, 1);
-      expect(mapRepository.route.value, isNull);
     });
   });
 }
