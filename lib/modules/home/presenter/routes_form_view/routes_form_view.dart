@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:spixs_tecnologia/app_dependency_injection.dart';
 
 import '../../../../app_routes.dart';
+import '../../../../shared/widgets/connectivity_warning_banner.dart';
 import '../../../core/theme/domain/app_theme.dart';
 import '../../../core/theme/domain/tokens/app_spacing.dart';
 import '../../../core/theme/domain/tokens/app_typography.dart';
@@ -28,56 +29,77 @@ class _RoutesFormViewState extends State<RoutesFormView> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
   @override
+  void initState() {
+    super.initState();
+    // Wires o listener de conectividade (idempotente) assim que a tela abre.
+    _viewmodel.startConnectivityMonitoring();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
         child: ListenableBuilder(
           listenable: _viewmodel,
           builder: (context, _) {
-            return Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.all(AppSpacing.space4),
-                children: [
-                  // Título da tela: estilo `title`, margem inferior `space-4`.
-                  Text('Para onde vamos?', style: AppTypography.title),
-                  const SizedBox(height: AppSpacing.space4),
-                  ..._buildAddressFields(),
-                  const SizedBox(height: AppSpacing.space2),
-                  // Link "Adicionar ponto": brand · body-strong · sem ícone.
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TextButton(
-                      onPressed: _viewmodel.addAddressField,
-                      child: const Text('Adicionar ponto'),
-                    ),
+            return ValueListenableBuilder<bool>(
+              valueListenable: _viewmodel.isOnline,
+              builder: (context, isOnline, _) {
+                return Form(
+                  key: _formKey,
+                  child: ListView(
+                    padding: const EdgeInsets.all(AppSpacing.space4),
+                    children: [
+                      // Título da tela: estilo `title`, margem inferior `space-4`.
+                      Text('Para onde vamos?', style: AppTypography.title),
+                      // Aviso de conexão: sem internet a rota não pode ser
+                      // confirmada (botão desabilitado abaixo da lista).
+                      if (!isOnline) ...[
+                        const SizedBox(height: AppSpacing.space3),
+                        const ConnectivityWarningBanner(),
+                      ],
+                      const SizedBox(height: AppSpacing.space4),
+                      ..._buildAddressFields(),
+                      const SizedBox(height: AppSpacing.space2),
+                      // Link "Adicionar ponto": brand · body-strong · sem ícone.
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton(
+                          onPressed: _viewmodel.addAddressField,
+                          child: const Text('Adicionar ponto'),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.space4),
+                      ElevatedButton(
+                        // CTA em destaque: radius-lg; inativo = fundo border +
+                        // texto ink-muted, ativo = fundo brand + texto branco.
+                        style: AppTheme.primaryCtaButtonStyle(),
+                        onPressed: _viewmodel.canConfirm ? _confirmRoute : null,
+                        child: const Text('Confirmar rota'),
+                      ),
+                      if (!_viewmodel.canConfirm) ...[
+                        const SizedBox(height: AppSpacing.space2),
+                        Text(
+                          !isOnline
+                              ? 'Sem conexão com a internet — a rota não '
+                                    'pode ser confirmada'
+                              : // Regra de seleção: preenchido mas sem escolher
+                              // uma das sugestões → orienta o usuário.
+                              _viewmodel.allAddressesFilled &&
+                                      !_viewmodel.allAddressesSelected
+                                  ? 'Selecione uma sugestão de endereço para cada campo'
+                                  : _viewmodel.addressControllers.length >
+                                          RoutesFormViewmodel.minimumAddresses
+                                      ? 'Preencha todos os endereços para continuar'
+                                      : 'Preencha os 3 endereços para continuar',
+                          style: AppTypography.caption,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: AppSpacing.space4),
-                  ElevatedButton(
-                    // CTA em destaque: radius-lg; inativo = fundo border +
-                    // texto ink-muted, ativo = fundo brand + texto branco.
-                    style: AppTheme.primaryCtaButtonStyle(),
-                    onPressed: _viewmodel.canConfirm ? _confirmRoute : null,
-                    child: const Text('Confirmar rota'),
-                  ),
-                  if (!_viewmodel.canConfirm) ...[
-                    const SizedBox(height: AppSpacing.space2),
-                    Text(
-                      // Regra de seleção: preenchido mas sem escolher uma
-                      // das sugestões → orienta o usuário.
-                      _viewmodel.allAddressesFilled &&
-                              !_viewmodel.allAddressesSelected
-                          ? 'Selecione uma sugestão de endereço para cada campo'
-                          : _viewmodel.addressControllers.length >
-                                  RoutesFormViewmodel.minimumAddresses
-                              ? 'Preencha todos os endereços para continuar'
-                              : 'Preencha os 3 endereços para continuar',
-                      style: AppTypography.caption,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ],
-              ),
+                );
+              },
             );
           },
         ),

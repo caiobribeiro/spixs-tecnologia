@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:spixs_tecnologia/app_dependency_injection.dart';
 
+import '../../../../modules/core/connectivity/domain/repository/connectivity_repository.dart';
 import '../../../../shared/mixins/validation_mixin.dart';
 import '../../../../shared/patterns/result.dart';
 import '../../domain/entity/place_suggestion_entity.dart';
@@ -22,6 +24,7 @@ import '../../domain/repository/places_repository.dart';
 class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   RoutesFormViewmodel({
     this._placesRepository,
+    this._connectivityRepository,
     this.searchDebounce = const Duration(milliseconds: 350),
   }) {
     for (final controller in _addressControllers) {
@@ -42,6 +45,22 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   PlacesRepository? _placesRepository;
   PlacesRepository get _autocompleteRepository =>
       _placesRepository ??= getIt<PlacesRepository>();
+
+  /// Repositório de conectividade (SSOT da internet); injetável nos testes.
+  ///
+  /// Sem ele (testes unitários) a conectividade não bloqueia a confirmação:
+  /// apenas quando a tela real o injeta (via DI) o formulário passa a exigir
+  /// conexão.
+  ConnectivityRepository? _connectivityRepository;
+  ConnectivityRepository get _connectivityRepo =>
+      _connectivityRepository ??= getIt<ConnectivityRepository>();
+
+  /// SSOT da conectividade (internet disponível?) — aviso no formulário.
+  ValueListenable<bool> get isOnline => _connectivityRepo.isOnline;
+
+  /// Wires (again) the connectivity listener; idempotente no repositório.
+  Future<void> startConnectivityMonitoring() =>
+      _connectivityRepo.startMonitoring();
 
   /// Tempo de espera após a última tecla antes de consultar a API.
   final Duration searchDebounce;
@@ -98,12 +117,17 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
       _selectedAddressIndexes.length == _addressControllers.length;
 
   /// Whether **every** displayed address field is filled **and** its address
-  /// was picked from the suggestion list.
+  /// was picked from the suggestion list **and** the app is online.
   ///
   /// O botão "Confirmar rota" só pode ser clicado quando há um endereço
-  /// selecionado em cada campo — validação de todos os endereços antes de
-  /// prosseguir, não apenas o mínimo de [minimumAddresses] pontos.
-  bool get canConfirm => allAddressesFilled && allAddressesSelected;
+  /// selecionado em cada campo e há conexão com a internet (o aviso de
+  /// offline desabilita a confirmação). Sem repositório de conectividade
+  /// injetado (testes unitários) a conexão não é exigida.
+  bool get canConfirm =>
+      allAddressesFilled && allAddressesSelected && _canConfirmOnline;
+
+  /// Sem repositório de conectividade, a confirmação não é bloqueada.
+  bool get _canConfirmOnline => _connectivityRepository?.isOnline.value ?? true;
 
   /// Whether the address at [index] was picked from the autocomplete list
   /// (Google Places) — i.e., the user selected one of the suggestions.
