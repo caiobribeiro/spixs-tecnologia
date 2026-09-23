@@ -34,4 +34,11 @@ abstract interface class LocationRepository {
 
   /// Opens the app settings page where the user can grant permissions.
   Future<bool> openAppSettings();
+
+  /// Starts listening to continuous GPS updates and refreshes [startPoint]
+  /// every time the device moves.
+  void startLocationUpdates();
+
+  /// Stops the continuous GPS updates started by [startLocationUpdates].
+  void stopLocationUpdates();
 }

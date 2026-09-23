@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -21,6 +23,8 @@ class LocationRepositoryImpl implements LocationRepository {
   /// SSOT do ponto de partida — única fonte da verdade para a apresentação.
   final ValueNotifier<GeoPointEntity?> _startPoint =
       ValueNotifier<GeoPointEntity?>(null);
+
+  StreamSubscription<GeoPointModel>? _positionSubscription;
 
   @override
   ValueNotifier<GeoPointEntity?> get startPoint => _startPoint;
@@ -70,5 +74,19 @@ class LocationRepositoryImpl implements LocationRepository {
   @override
   Future<bool> openAppSettings() {
     return _service.openAppSettings();
+  }
+
+  @override
+  void startLocationUpdates() {
+    _positionSubscription?.cancel();
+    _positionSubscription = _service.getPositionStream().listen((model) {
+      _startPoint.value = model.toEntity();
+    });
+  }
+
+  @override
+  void stopLocationUpdates() {
+    _positionSubscription?.cancel();
+    _positionSubscription = null;
   }
 }

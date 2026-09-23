@@ -68,4 +68,22 @@ class LocationService {
       return Result.error(error);
     }
   }
+
+  /// Continuous stream of device position updates.
+  ///
+  /// Emits a new [GeoPointModel] whenever the device moves at least
+  /// [distanceFilter] meters (default 10 m).
+  Stream<GeoPointModel> getPositionStream({int distanceFilter = 10}) {
+    return Geolocator.getPositionStream(
+      locationSettings: AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: distanceFilter,
+      ),
+    ).map(
+      (position) => GeoPointModel(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      ),
+    );
+  }
 }
