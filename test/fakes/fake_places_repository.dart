@@ -7,10 +7,17 @@ import 'package:spixs_tecnologia/shared/patterns/result.dart';
 class FakePlacesRepository implements PlacesRepository {
   FakePlacesRepository({
     this.suggestions = const [],
+    this.byInput = const {},
     this.error,
   });
 
+  /// Sugestões retornadas para qualquer consulta.
   final List<PlaceSuggestionEntity> suggestions;
+
+  /// Sugestões específicas por texto de consulta (subtítulo/descrição por
+  /// campo em testes de formulário com vários endereços distintos).
+  final Map<String, List<PlaceSuggestionEntity>> byInput;
+
   final Exception? error;
 
   /// Número de vezes que [autocompleteAddress] foi chamado.
@@ -28,6 +35,6 @@ class FakePlacesRepository implements PlacesRepository {
     if (error != null) {
       return Result.error(error!);
     }
-    return Result.ok(List.of(suggestions));
+    return Result.ok(List.of(byInput[input] ?? suggestions));
   }
 }

@@ -9,6 +9,15 @@ import 'package:spixs_tecnologia/modules/home/presenter/routes_form_view/routes_
 import 'fakes/fake_places_repository.dart';
 
 void main() {
+  /// Constrói uma sugestão com [description] reutilizável nos testes.
+  PlaceSuggestionEntity suggestion(String description) =>
+      PlaceSuggestionEntity(
+        placeId: 'ChIJ-$description',
+        description: description,
+        mainText: description,
+        secondaryText: '',
+      );
+
   group('RoutesFormViewmodel', () {
     test('começa com os 3 pontos A/B/C vazios e botão desabilitado', () {
       final viewmodel = RoutesFormViewmodel();
@@ -16,10 +25,12 @@ void main() {
       expect(viewmodel.addressControllers, hasLength(3));
       expect(viewmodel.canConfirm, isFalse);
       expect(viewmodel.canRemoveAddressField, isFalse);
+      expect(viewmodel.allAddressesSelected, isFalse);
     });
 
     test(
-      'habilita confirmação somente quando TODOS os campos estão preenchidos',
+      'habilita confirmação somente quando TODOS os campos estão preenchidos '
+      'E têm sugestão selecionada',
       () {
         final viewmodel = RoutesFormViewmodel();
 
@@ -28,25 +39,51 @@ void main() {
         viewmodel.addressControllers[1].text = 'Rua B';
         expect(viewmodel.canConfirm, isFalse);
 
-        // Preenche o terceiro: habilita.
+        // Preenche o terceiro, ainda sem selecionar: texto solto não basta.
         viewmodel.addressControllers[2].text = 'Rua C';
+        expect(viewmodel.allAddressesFilled, isTrue);
+        expect(viewmodel.allAddressesSelected, isFalse);
+        expect(viewmodel.canConfirm, isFalse);
+
+        // Seleciona os três → habilita.
+        viewmodel.selectSuggestion(0, suggestion('Rua A'));
+        viewmodel.selectSuggestion(1, suggestion('Rua B'));
+        expect(viewmodel.canConfirm, isFalse);
+        viewmodel.selectSuggestion(2, suggestion('Rua C'));
         expect(viewmodel.canConfirm, isTrue);
       },
     );
 
-    test('com ponto extra, exige que TODOS os campos estejam preenchidos', () {
+    test('editar o texto depois de selecionar invalida a seleção', () async {
+      final viewmodel = RoutesFormViewmodel(
+        placesRepository: FakePlacesRepository(),
+      );
+
+      viewmodel.selectSuggestion(0, suggestion('Av. Paulista, 1000'));
+      expect(viewmodel.isAddressSelected(0), isTrue);
+
+      // O usuário segue digitando sobre o endereço escolhido: a seleção
+      // deixa de valer até escolher uma nova sugestão.
+      viewmodel.addressControllers[0].text = 'Av. Paulista, 1000 X';
+      viewmodel.onAddressChanged(0, 'Av. Paulista, 1000 X');
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(viewmodel.isAddressSelected(0), isFalse);
+      expect(viewmodel.canConfirm, isFalse);
+    });
+
+    test('com ponto extra, exige que TODOS os campos estejam selecionados', () {
       final viewmodel = RoutesFormViewmodel();
       viewmodel.addAddressField();
       expect(viewmodel.addressControllers, hasLength(4));
 
-      // 3 preenchidos + 1 vazio → ainda desabilitado (validação de todos).
-      viewmodel.addressControllers[0].text = 'Rua A';
-      viewmodel.addressControllers[1].text = 'Rua B';
-      viewmodel.addressControllers[2].text = 'Rua C';
+      // 3 selecionados + 1 vazio → ainda desabilitado (validação de todos).
+      for (var i = 0; i < 3; i++) {
+        viewmodel.selectSuggestion(i, suggestion('Rua $i'));
+      }
       expect(viewmodel.canConfirm, isFalse);
 
-      // Preenche o 4º → habilita.
-      viewmodel.addressControllers[3].text = 'Rua D';
+      // Seleciona o 4º → habilita.
+      viewmodel.selectSuggestion(3, suggestion('Rua 3'));
       expect(viewmodel.canConfirm, isTrue);
     });
 
@@ -68,13 +105,25 @@ void main() {
       expect(viewmodel.validateAddress('Rua A'), isNull);
     });
 
-    test('validateAllAddresses retorna o primeiro erro encontrado', () {
+    test('validateAllAddresses: vazio → obrigatório; preenchido sem seleção '
+        '→ sugere escolher da lista', () {
       final viewmodel = RoutesFormViewmodel();
       viewmodel.addressControllers[0].text = 'Rua A';
       viewmodel.addressControllers[1].text = '   ';
       viewmodel.addressControllers[2].text = 'Rua C';
 
+      // Campo vazio é o primeiro erro encontrado.
       expect(viewmodel.validateAllAddresses(), 'Campo obrigatório');
+
+      // Tudo preenchido, mas sem seleção → rede de segurança da regra.
+      viewmodel.addressControllers[1].text = 'Rua B';
+      expect(viewmodel.validateAllAddresses(), 'Selecione um endereço sugerido');
+
+      // Seleciona todos → passa.
+      viewmodel.selectSuggestion(0, suggestion('Rua A'));
+      viewmodel.selectSuggestion(1, suggestion('Rua B'));
+      viewmodel.selectSuggestion(2, suggestion('Rua C'));
+      expect(viewmodel.validateAllAddresses(), isNull);
     });
 
     test('addAddressField adiciona um campo idêntico e libera remoção', () {
@@ -100,6 +149,25 @@ void main() {
         viewmodel.addressControllers.map((c) => c.text),
         orderedEquals(['Rua A', '', 'Rua D']),
       );
+    });
+
+    test('removeAddressField rebaseia as seleções dos campos restantes', () {
+      final viewmodel = RoutesFormViewmodel();
+      viewmodel.addAddressField(); // A, B, C, D
+      for (var i = 0; i < 4; i++) {
+        viewmodel.selectSuggestion(i, suggestion('Rua $i'));
+      }
+      expect(viewmodel.canConfirm, isTrue);
+
+      // Remove o índice 1 ('Ponto B'): C desce para o índice 1, D para o 2
+      // e as seleções acompanham — o form continua pronto para confirmar.
+      viewmodel.removeAddressField(1);
+
+      expect(viewmodel.addressControllers, hasLength(3));
+      expect(viewmodel.isAddressSelected(0), isTrue);
+      expect(viewmodel.isAddressSelected(1), isTrue);
+      expect(viewmodel.isAddressSelected(2), isTrue);
+      expect(viewmodel.canConfirm, isTrue);
     });
 
     test('removeAddressField respeita o mínimo de 3 pontos A/B/C', () {
@@ -196,6 +264,8 @@ void main() {
         'Av. Paulista, 1000 - Bela Vista, São Paulo - SP, Brasil',
       );
       expect(viewmodel.suggestionsFor(0), isEmpty);
+      // A seleção marca o campo como escolhido da lista (regra do form).
+      expect(viewmodel.isAddressSelected(0), isTrue);
     });
 
     test('falha da API limpa sugestões sem lançar exceção', () async {
@@ -264,7 +334,9 @@ void main() {
       viewmodel.addressControllers[1].text = 'Rua B';
       viewmodel.addressControllers[2].text = 'Rua C';
       viewmodel.addAddressField();
-      viewmodel.addressControllers[3].text = 'Rua D';
+      for (var i = 0; i < 4; i++) {
+        viewmodel.selectSuggestion(i, suggestion('Rua $i'));
+      }
       expect(viewmodel.addressControllers, hasLength(4));
       expect(viewmodel.canConfirm, isTrue);
 
@@ -273,6 +345,9 @@ void main() {
       expect(viewmodel.addressControllers, hasLength(3));
       expect(viewmodel.canConfirm, isFalse);
       expect(viewmodel.canRemoveAddressField, isFalse);
+      // Seleções descartadas junto com os textos.
+      expect(viewmodel.allAddressesSelected, isFalse);
+      expect(viewmodel.formEpoch, 1);
       for (final controller in viewmodel.addressControllers) {
         expect(controller.text, isEmpty);
       }

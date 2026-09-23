@@ -63,10 +63,15 @@ class _RoutesFormViewState extends State<RoutesFormView> {
                   if (!_viewmodel.canConfirm) ...[
                     const SizedBox(height: AppSpacing.space2),
                     Text(
-                      _viewmodel.addressControllers.length >
-                              RoutesFormViewmodel.minimumAddresses
-                          ? 'Preencha todos os endereços para continuar'
-                          : 'Preencha os 3 endereços para continuar',
+                      // Regra de seleção: preenchido mas sem escolher uma
+                      // das sugestões → orienta o usuário.
+                      _viewmodel.allAddressesFilled &&
+                              !_viewmodel.allAddressesSelected
+                          ? 'Selecione uma sugestão de endereço para cada campo'
+                          : _viewmodel.addressControllers.length >
+                                  RoutesFormViewmodel.minimumAddresses
+                              ? 'Preencha todos os endereços para continuar'
+                              : 'Preencha os 3 endereços para continuar',
                       style: AppTypography.caption,
                       textAlign: TextAlign.center,
                     ),
@@ -87,6 +92,9 @@ class _RoutesFormViewState extends State<RoutesFormView> {
       for (var index = 0; index < controllers.length; index++) ...[
         if (index > 0) const SizedBox(height: AppSpacing.space2),
         AddressAutocompleteField(
+          // Key com a geração do form: ao resetar, os campos são remontados
+          // e recomeçam sem histórico de interação (sem vermelho pós-reset).
+          key: ValueKey('address_${_viewmodel.formEpoch}_$index'),
           controller: controllers[index],
           validator: _viewmodel.validateAddress,
           hintText: 'Ponto ${_labelFor(index)}',

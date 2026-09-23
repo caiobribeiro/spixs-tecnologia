@@ -42,7 +42,9 @@ class AddressAutocompleteField extends StatelessWidget {
         // Campo base: surface-200 · border · radius-md (tema global).
         TextFormField(
           controller: controller,
-          autovalidateMode: AutovalidateMode.always,
+          // Só valida depois da PRIMEIRA interação do usuário com o campo:
+          // no carregamento da tela nenhum erro aparece, mesmo vazio.
+          autovalidateMode: AutovalidateMode.onUserInteraction,
           validator: validator,
           onChanged: onChanged,
           decoration: InputDecoration(

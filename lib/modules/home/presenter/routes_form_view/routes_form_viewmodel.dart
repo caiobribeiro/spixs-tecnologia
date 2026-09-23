@@ -52,6 +52,23 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   /// Sugestões de endereço por índice de campo (estado transitório de UI).
   final Map<int, List<PlaceSuggestionEntity>> _suggestions = {};
 
+  /// Índices dos campos cujo endereço veio de uma **seleção no autocomplete**
+  /// (Google Places).
+  ///
+  /// Regra do formulário: a rota só é confirmada com endereços escolhidos da
+  /// lista de sugestões — texto digitado solto não habilita o botão. Uma vez
+  /// selecionada, a marcação se mantém até o usuário editar o texto de novo
+  /// ([onAddressChanged] a remove) ou o campo ser removido.
+  final Set<int> _selectedAddressIndexes = {};
+
+  /// Geração do formulário: incrementada a cada [resetForm].
+  ///
+  /// A view usa este valor na `key` dos campos para **remontá-los** ao limpar
+  /// o form — os campos recomeçam sem histórico de interação ("dirty"), ou
+  /// seja, sem vermelho logo após reset.
+  int _formEpoch = 0;
+  int get formEpoch => _formEpoch;
+
   /// Controllers dos campos de endereço (SSOT do formulário).
   ///
   /// Começa com os 3 pontos A/B/C fixos da tela; "Adicionar ponto" inclui
@@ -67,13 +84,30 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
       List.unmodifiable(_addressControllers);
 
   /// Whether **every** displayed address field is filled.
-  ///
-  /// O botão "Confirmar rota" só pode ser clicado quando não há nenhum campo
-  /// vazio na tela — validação de todos os endereços antes de prosseguir,
-  /// não apenas o mínimo de [minimumAddresses] pontos.
-  bool get canConfirm =>
+  bool get allAddressesFilled =>
       _addressControllers.length >= minimumAddresses &&
       _filledAddresses == _addressControllers.length;
+
+  /// Whether **every** displayed address field has a suggestion selected
+  /// from the autocomplete (Google Places).
+  ///
+  /// Só valida/libera o formulário depois que o usuário seleciona uma das
+  /// respostas: texto digitado sem seleção não conta como endereço.
+  bool get allAddressesSelected =>
+      _addressControllers.isNotEmpty &&
+      _selectedAddressIndexes.length == _addressControllers.length;
+
+  /// Whether **every** displayed address field is filled **and** its address
+  /// was picked from the suggestion list.
+  ///
+  /// O botão "Confirmar rota" só pode ser clicado quando há um endereço
+  /// selecionado em cada campo — validação de todos os endereços antes de
+  /// prosseguir, não apenas o mínimo de [minimumAddresses] pontos.
+  bool get canConfirm => allAddressesFilled && allAddressesSelected;
+
+  /// Whether the address at [index] was picked from the autocomplete list
+  /// (Google Places) — i.e., the user selected one of the suggestions.
+  bool isAddressSelected(int index) => _selectedAddressIndexes.contains(index);
 
   /// Whether an address field can be removed from the screen.
   ///
@@ -95,12 +129,19 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
 
   /// Validates **every** displayed address field, returning the first error.
   ///
-  /// Usado como rede de segurança na confirmação: o botão já é desabilitado
-  /// enquanto houver campo vazio, mas o [Form] ainda valida ao confirmar.
+  /// Rede de segurança da regra de seleção: primeiro exige campo preenchido
+  /// ("Campo obrigatório") e depois endereço escolhido da lista de sugestões
+  /// ("Selecione um endereço sugerido"). O botão já é desabilitado enquanto
+  /// houver pendência, mas a validação ainda roda ao confirmar.
   String? validateAllAddresses() {
     return combine([
+      // Primeiro todos os campos preenchidos, depois todas as seleções —
+      // assim "Campo obrigatório" precede "Selecione um endereço sugerido"
+      // mesmo quando o campo vazio vem depois de um sem seleção.
       for (final controller in _addressControllers)
         () => isNotEmpty(controller.text),
+      for (var i = 0; i < _addressControllers.length; i++)
+        () => isAddressSelected(i) ? null : 'Selecione um endereço sugerido',
     ]);
   }
 
@@ -130,7 +171,26 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
     // Os índices mudaram: descarta buscas e sugestões pendentes.
     _cancelPendingSearches();
     _suggestions.clear();
+    // Os índices dos campos seguintes mudaram: ajusta as seleções.
+    _shiftSelectedIndexesAfterRemoval(index);
     notifyListeners();
+  }
+
+  /// Rebaseia as seleções de autocomplete depois da remoção de um campo.
+  ///
+  /// O campo removido perde a seleção e os índices posteriores descem uma
+  /// posição, mantendo as seleções dos campos que ainda estão na tela.
+  void _shiftSelectedIndexesAfterRemoval(int removedIndex) {
+    final shifted = <int>{};
+    for (final index in _selectedAddressIndexes) {
+      if (index == removedIndex) {
+        continue;
+      }
+      shifted.add(index > removedIndex ? index - 1 : index);
+    }
+    _selectedAddressIndexes
+      ..clear()
+      ..addAll(shifted);
   }
 
   /// Sugestões de autocomplete exibidas abaixo do campo [index].
@@ -142,8 +202,12 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   /// Consultas curtas não disparam busca; as demais são debounced em
   /// [searchDebounce] — se o usuário continua digitando, o timer anterior
   /// é cancelado e a API só é consultada após a pausa.
+  ///
+  /// Editar o texto **invalida a seleção anterior** do campo: o endereço
+  /// selecionado deixa de valer até o usuário escolher uma nova sugestão.
   void onAddressChanged(int index, String value) {
     _debounceTimers[index]?.cancel();
+    _selectedAddressIndexes.remove(index);
 
     final query = value.trim();
     if (query.length < minAutocompleteQueryLength) {
@@ -157,9 +221,13 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   }
 
   /// Preenche o campo [index] com a sugestão escolhida e fecha a lista.
+  ///
+  /// Marca o campo como **selecionado** — condição para o formulário validar
+  /// a rota (não basta texto digitado).
   void selectSuggestion(int index, PlaceSuggestionEntity suggestion) {
     _debounceTimers[index]?.cancel();
     _addressControllers[index].text = suggestion.description;
+    _selectedAddressIndexes.add(index);
     _suggestions.remove(index);
     notifyListeners();
   }
@@ -214,6 +282,10 @@ class RoutesFormViewmodel extends ChangeNotifier with ValidationMixin {
   void resetForm() {
     _cancelPendingSearches();
     _suggestions.clear();
+    _selectedAddressIndexes.clear();
+    // Nova geração do formulário: os campos são remontados pela view (key
+    // baseada em [formEpoch]) e recomeçam sem validação exibida.
+    _formEpoch++;
     // Descarta campos adicionados além do mínimo A/B/C.
     while (_addressControllers.length > minimumAddresses) {
       final controller = _addressControllers.removeLast();
