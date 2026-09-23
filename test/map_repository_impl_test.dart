@@ -12,6 +12,8 @@ import 'package:spixs_tecnologia/modules/map/domain/entity/geo_point_entity.dart
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_request_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/repository/map_repository_impl.dart';
+import 'package:spixs_tecnologia/modules/map/domain/usecases/calculate_geographic_distance_use_case.dart';
+import 'package:spixs_tecnologia/modules/map/domain/usecases/sort_stops_by_distance_use_case.dart';
 import 'package:spixs_tecnologia/shared/patterns/result.dart';
 
 /// Fake que evita o Dio real: responde com um Result pré-determinado.
@@ -70,11 +72,29 @@ const _model = RouteModel(
   optimizedIntermediateWaypointIndex: <int>[],
 );
 
+/// Use case real (stateless), compartilhado entre os testes do repositório.
+final _sortStopsByDistance = SortStopsByDistanceUseCase(
+  CalculateGeographicDistanceUseCase(),
+);
+
+/// Constrói o repositório com os fakes de service/geocoding e injeta o use
+/// case real de ordenação por distância (mesma DI do app).
+MapRepositoryImpl _buildRepository(
+  _FakeMapService service, [
+  _FakeGeocodingService? geocoding,
+]) {
+  return MapRepositoryImpl(
+    service,
+    geocoding ?? _FakeGeocodingService(),
+    _sortStopsByDistance,
+  );
+}
+
 void main() {
   group('MapRepositoryImpl.computeRoute', () {
     test('converte Model em Entity e atualiza a SSOT (route.value)', () async {
       List<String>? receivedAddresses;
-      final repository = MapRepositoryImpl(
+      final repository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async {
           receivedAddresses = addresses;
           return Result.ok(_model);
@@ -105,7 +125,7 @@ void main() {
 
     test('erro do service não atualiza a SSOT', () async {
       final failure = Exception('Places API error: REQUEST_DENIED');
-      final repository = MapRepositoryImpl(
+      final repository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async => Result.error(failure)),
         _FakeGeocodingService(),
       );
@@ -123,7 +143,7 @@ void main() {
     });
 
     test('SSOT mantém a última rota após sucesso seguido de erro', () async {
-      final repository = MapRepositoryImpl(
+      final repository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async => Result.ok(_model)),
         _FakeGeocodingService(),
       );
@@ -134,7 +154,7 @@ void main() {
       expect(successRoute, isNotNull);
 
       // O próximo repositório usa um service que agora falha.
-      final failingRepository = MapRepositoryImpl(
+      final failingRepository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async => Result.error(Exception('boom'))),
         _FakeGeocodingService(),
       );
@@ -149,7 +169,7 @@ void main() {
     test('converte a origem do usuário (entity → model) e propaga userOrigin',
         () async {
       GeoPointModel? receivedOrigin;
-      final repository = MapRepositoryImpl(
+      final repository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async {
           receivedOrigin = origin;
           return Result.ok(
@@ -204,7 +224,7 @@ void main() {
       const userLocation =
           GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
       List<String>? receivedAddresses;
-      final repository = MapRepositoryImpl(
+      final repository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async {
           receivedAddresses = addresses;
           return Result.ok(_model);
@@ -236,7 +256,7 @@ void main() {
         () async {
       List<String>? receivedAddresses;
       final geocoding = _FakeGeocodingService();
-      final repository = MapRepositoryImpl(
+      final repository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async {
           receivedAddresses = addresses;
           return Result.ok(_model);
@@ -255,7 +275,7 @@ void main() {
 
     test('falha do geocoding propaga o erro e não atualiza a SSOT', () async {
       var computeCalls = 0;
-      final repository = MapRepositoryImpl(
+      final repository =  _buildRepository(
         _FakeMapService((addresses, {origin}) async {
           computeCalls++;
           return Result.ok(_model);

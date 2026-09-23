@@ -9,7 +9,9 @@ import 'package:spixs_tecnologia/modules/map/domain/entity/location_access_statu
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_waypoint_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/location_access_failure.dart';
+import 'package:spixs_tecnologia/modules/map/domain/usecases/trim_route_path_use_case.dart';
 import 'package:spixs_tecnologia/modules/map/presenter/map_viewmodel.dart';
+import 'package:spixs_tecnologia/modules/map/presenter/usecases/numbered_marker_use_case.dart';
 import 'package:spixs_tecnologia/shared/patterns/result.dart';
 
 import 'fakes/fake_location_repository.dart';
@@ -18,13 +20,17 @@ import 'fakes/fake_map_repository.dart';
 void main() {
   const userLocation = GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
 
+  // Use case reais (stateless), compartilhados entre os testes do viewmodel.
+  final trimRoutePath = TrimRoutePathUseCase();
+  final markerIconsUseCase = NumberedMarkerUseCase();
+
   group('MapViewmodel — rota na entrada do mapa com a localização do usuário',
       () {
     test('com localização e endereços, insere o usuário como origem e calcula',
         () async {
       final mapRepository = FakeMapRepository();
       final locationRepository = FakeLocationRepository(startPoint: userLocation);
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
 
       await viewmodel.initializeRoute(['Av. A', 'Rua B', 'Rua C']);
 
@@ -46,7 +52,7 @@ void main() {
     test('sem endereços, nenhuma rota é calculada', () async {
       final mapRepository = FakeMapRepository();
       final locationRepository = FakeLocationRepository(startPoint: userLocation);
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
 
       await viewmodel.initializeRoute(const []);
       await viewmodel.initializeLocation();
@@ -60,7 +66,7 @@ void main() {
         'posição', () async {
       final mapRepository = FakeMapRepository();
       final locationRepository = FakeLocationRepository();
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
 
       // Entrada do mapa: ainda sem localização no SSOT → não calcula.
       await viewmodel.initializeRoute(['Av. A', 'Rua B', 'Rua C']);
@@ -85,7 +91,7 @@ void main() {
         () async {
       final mapRepository = FakeMapRepository();
       final locationRepository = FakeLocationRepository();
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
       locationRepository.accessResult =
           const Result.error(LocationPermissionDeniedFailure());
 
@@ -99,7 +105,7 @@ void main() {
     test('não recalcula a rota a cada atualização contínua de GPS', () async {
       final mapRepository = FakeMapRepository();
       final locationRepository = FakeLocationRepository(startPoint: userLocation);
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
 
       await viewmodel.initializeRoute(['Av. A', 'Rua B', 'Rua C']);
       expect(mapRepository.computeRouteCalls, 1);
@@ -119,7 +125,7 @@ void main() {
         routeResult: Result.error(Exception('No routes found')),
       );
       final locationRepository = FakeLocationRepository(startPoint: userLocation);
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
 
       await viewmodel.initializeRoute(['Av. A', 'Rua B', 'Rua C']);
 
@@ -159,7 +165,7 @@ void main() {
       );
       final locationRepository =
           FakeLocationRepository(startPoint: userLocation);
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
 
       await viewmodel.initializeRoute(['Av. A', 'Rua B']);
 
@@ -182,7 +188,7 @@ void main() {
       final mapRepository = FakeMapRepository();
       final locationRepository =
           FakeLocationRepository(startPoint: userLocation);
-      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository, trimRoutePath, markerIconsUseCase);
 
       viewmodel.startNavigation();
       viewmodel.startNavigation();

@@ -1,16 +1,18 @@
 import 'dart:math' as math;
 
-import 'entity/geo_point_entity.dart';
+import '../entity/geo_point_entity.dart';
 
-/// Haversine straight-line distance between two coordinates, in meters.
+/// Use case: haversine straight-line distance between two coordinates, in
+/// meters.
 ///
-/// Used by the distance check that orders the route stops from the nearest
-/// to the user's origin to the farthest one.
-abstract final class GeographicDistance {
+/// Pure domain rule consumed by other use cases (e.g.
+/// [SortStopsByDistanceUseCase]) to run the distance check that orders the
+/// route stops from the nearest to the user's origin to the farthest one.
+class CalculateGeographicDistanceUseCase {
   static const double _earthRadiusMeters = 6371000;
 
   /// Approximate straight-line distance between [a] and [b] in meters.
-  static double meters(GeoPointEntity a, GeoPointEntity b) {
+  double execute(GeoPointEntity a, GeoPointEntity b) {
     final dLat = _radians(b.latitude - a.latitude);
     final dLng = _radians(b.longitude - a.longitude);
     final lat1 = _radians(a.latitude);

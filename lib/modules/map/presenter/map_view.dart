@@ -10,7 +10,6 @@ import '../../../modules/core/theme/domain/tokens/app_typography.dart';
 import '../domain/entity/geo_point_entity.dart';
 import '../domain/entity/location_access_status.dart';
 import '../domain/entity/route_entity.dart';
-import 'helpers/map_marker_helper.dart';
 import 'map_viewmodel.dart';
 import 'widgets/location_warning_card.dart';
 import 'widgets/start_navigation_button.dart';
@@ -127,7 +126,7 @@ class _MapViewState extends State<MapView> {
     final futures = <Future<void>>[];
     for (var i = markerOffset; i < route.waypoints.length; i++) {
       futures.add(
-        MapMarkerHelper.numberedMarker(i - markerOffset + 1).then((icon) {
+        _viewmodel.numberedMarkerIcon(i - markerOffset + 1).then((icon) {
           _numberedIcons[i] = icon;
         }),
       );

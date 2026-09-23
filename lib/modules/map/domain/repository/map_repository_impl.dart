@@ -11,7 +11,7 @@ import '../entity/place_entity.dart';
 import '../entity/route_entity.dart';
 import '../entity/route_request_entity.dart';
 import '../entity/route_stop_entity.dart';
-import '../route_stops_sorter.dart';
+import '../usecases/sort_stops_by_distance_use_case.dart';
 import 'map_repository.dart';
 
 /// Concrete [MapRepository].
@@ -20,10 +20,15 @@ import 'map_repository.dart';
 /// `Model`s returned by the service into domain entities and **owns the
 /// SSOT** of the module data ([route]).
 class MapRepositoryImpl implements MapRepository {
-  MapRepositoryImpl(this._service, this._geocodingService);
+  MapRepositoryImpl(
+    this._service,
+    this._geocodingService,
+    this._sortStopsByDistance,
+  );
 
   final MapService _service;
   final GeocodingService _geocodingService;
+  final SortStopsByDistanceUseCase _sortStopsByDistance;
 
   /// SSOT da rota calculada — única fonte da verdade para a tela do mapa.
   ///
@@ -137,7 +142,7 @@ class MapRepositoryImpl implements MapRepository {
     }
 
     return Result.ok(
-      RouteStopsSorter.nearestToFarthestFromOrigin(origin: origin, stops: stops),
+      _sortStopsByDistance.execute(origin: origin, stops: stops),
     );
   }
 }

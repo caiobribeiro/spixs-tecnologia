@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 import '../../../../shared/patterns/command.dart';
 import '../../../../shared/patterns/result.dart';
@@ -10,9 +11,10 @@ import '../domain/entity/place_entity.dart';
 import '../domain/entity/route_entity.dart';
 import '../domain/entity/route_request_entity.dart';
 import '../domain/location_access_failure.dart';
-import '../domain/route_path_trimmer.dart';
 import '../domain/repository/location_repository.dart';
 import '../domain/repository/map_repository.dart';
+import '../domain/usecases/trim_route_path_use_case.dart';
+import 'usecases/numbered_marker_use_case.dart';
 
 /// Manages the state and logic of the map screen.
 ///
@@ -25,10 +27,17 @@ import '../domain/repository/map_repository.dart';
 /// ([startPoint]), a rota é calculada com essa localização como **origem**
 /// e os endereços como pontos de parada, na ordem otimizada pela API.
 class MapViewmodel extends ChangeNotifier {
-  MapViewmodel(this._repository, this._locationRepository);
+  MapViewmodel(
+    this._repository,
+    this._locationRepository,
+    this._trimRoutePath,
+    this._markerIcons,
+  );
 
   final MapRepository _repository;
   final LocationRepository _locationRepository;
+  final TrimRoutePathUseCase _trimRoutePath;
+  final NumberedMarkerUseCase _markerIcons;
 
   /// Endereços do formulário de rotas (A, B, C...), repassados na navegação
   /// para a tela do mapa e consumidos na entrada.
@@ -79,9 +88,9 @@ class MapViewmodel extends ChangeNotifier {
     if (!navigating.value || position == null) {
       return route.polylinePoints;
     }
-    return RoutePathTrimmer.remaining(
+    return _trimRoutePath.execute(
       points: route.polylinePoints,
-      current: position,
+      currentPosition: position,
     );
   }
 
@@ -123,6 +132,13 @@ class MapViewmodel extends ChangeNotifier {
     }
     navigating.value = true;
     _locationRepository.startLocationUpdates();
+  }
+
+  /// Generates the numbered marker icon for a waypoint through the
+  /// [NumberedMarkerUseCase], which the ViewModel owns (the View never
+  /// instantiates use cases directly).
+  Future<BitmapDescriptor> numberedMarkerIcon(int number) {
+    return _markerIcons.execute(number);
   }
 
   /// Ação do aviso "GPS desligado": abre as configurações de localização

@@ -1,12 +1,13 @@
-// Testes da regra de distância do módulo do mapa: ordena as paradas da rota
-// do endereço mais próximo ao mais distante da localização do usuário.
+// Testes dos use cases de distância do módulo do mapa: ordenam as paradas
+// da rota do endereço mais próximo ao mais distante da localização do
+// usuário.
 
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/modules/map/domain/entity/geo_point_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_stop_entity.dart';
-import 'package:spixs_tecnologia/modules/map/domain/geographic_distance.dart';
-import 'package:spixs_tecnologia/modules/map/domain/route_stops_sorter.dart';
+import 'package:spixs_tecnologia/modules/map/domain/usecases/calculate_geographic_distance_use_case.dart';
+import 'package:spixs_tecnologia/modules/map/domain/usecases/sort_stops_by_distance_use_case.dart';
 
 void main() {
   const origin = GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
@@ -24,29 +25,35 @@ void main() {
     location: GeoPointEntity(latitude: -23.5530, longitude: -46.6360),
   );
 
-  group('GeographicDistance', () {
+  group('CalculateGeographicDistanceUseCase', () {
+    final useCase = CalculateGeographicDistanceUseCase();
+
     test('distância zero entre o mesmo ponto', () {
-      expect(GeographicDistance.meters(origin, origin), 0);
+      expect(useCase.execute(origin, origin), 0);
     });
 
     test('é simétrica', () {
-      final forward = GeographicDistance.meters(origin, near.location);
-      final reverse = GeographicDistance.meters(near.location, origin);
+      final forward = useCase.execute(origin, near.location);
+      final reverse = useCase.execute(near.location, origin);
       expect(forward, closeTo(reverse, 0.0001));
     });
 
     test('ordenação correta dos pontos de teste (near < middle < far)', () {
-      final dNear = GeographicDistance.meters(origin, near.location);
-      final dMiddle = GeographicDistance.meters(origin, middle.location);
-      final dFar = GeographicDistance.meters(origin, far.location);
+      final dNear = useCase.execute(origin, near.location);
+      final dMiddle = useCase.execute(origin, middle.location);
+      final dFar = useCase.execute(origin, far.location);
       expect(dNear, lessThan(dMiddle));
       expect(dMiddle, lessThan(dFar));
     });
   });
 
-  group('RouteStopsSorter.nearestToFarthestFromOrigin', () {
-    test('ordena do mais próximo ao mais distante, ignorando a ordem dada', () {
-      final sorted = RouteStopsSorter.nearestToFarthestFromOrigin(
+  group('SortStopsByDistanceUseCase', () {
+    final useCase =
+        SortStopsByDistanceUseCase(CalculateGeographicDistanceUseCase());
+
+    test('ordena do mais próximo ao mais distante, ignorando a ordem dada',
+        () {
+      final sorted = useCase.execute(
         origin: origin,
         stops: [far, near, middle],
       );
@@ -58,7 +65,7 @@ void main() {
     });
 
     test('lista vazia permanece vazia', () {
-      final sorted = RouteStopsSorter.nearestToFarthestFromOrigin(
+      final sorted = useCase.execute(
         origin: origin,
         stops: const [],
       );
@@ -67,10 +74,7 @@ void main() {
 
     test('não muta a lista de entrada', () {
       final input = [far, near, middle];
-      RouteStopsSorter.nearestToFarthestFromOrigin(
-        origin: origin,
-        stops: input,
-      );
+      useCase.execute(origin: origin, stops: input);
       expect(input.map((stop) => stop.address), orderedEquals([
         'Distante',
         'Próximo',
