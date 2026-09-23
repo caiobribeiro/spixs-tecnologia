@@ -10,17 +10,11 @@ import '../entity/geo_point_entity.dart';
 import '../location_access_failure.dart';
 import 'location_repository.dart';
 
-/// Concrete [LocationRepository].
-///
-/// Delegates to the [LocationService] (data layer) and **owns the SSOT** of
-/// the start point ([startPoint]). The location access flow is orchestrated
-/// here — a domain rule: GPS first, then permission, then position.
 class LocationRepositoryImpl implements LocationRepository {
   LocationRepositoryImpl(this._service);
 
   final LocationService _service;
 
-  /// SSOT do ponto de partida — única fonte da verdade para a apresentação.
   final ValueNotifier<GeoPointEntity?> _startPoint =
       ValueNotifier<GeoPointEntity?>(null);
 
@@ -31,14 +25,10 @@ class LocationRepositoryImpl implements LocationRepository {
 
   @override
   Future<Result<GeoPointEntity>> requestLocationAccess() async {
-    // 1. GPS ligado? Sem ele não há posição, e o usuário precisa agir nas
-    //    configurações do dispositivo.
     if (!await _service.isLocationServiceEnabled()) {
       return const Result.error(LocationServiceDisabledFailure());
     }
 
-    // 2. Permissão de localização: solicita apenas quando ainda não houve
-    //    decisão do usuário.
     var permission = await _service.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await _service.requestPermission();
@@ -48,7 +38,6 @@ class LocationRepositoryImpl implements LocationRepository {
       return const Result.error(LocationPermissionDeniedFailure());
     }
 
-    // 3. Posição atual → SSOT (ponto de partida da rota).
     final result = await _service.getCurrentPosition();
     switch (result) {
       case Ok<GeoPointModel>():

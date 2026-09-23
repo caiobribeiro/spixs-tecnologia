@@ -17,26 +17,9 @@ import '../widgets/route_recalculated_banner.dart';
 import '../widgets/start_navigation_button.dart';
 import 'map_viewmodel.dart';
 
-/// Map screen entry point.
-///
-/// Receives the addresses collected on the route form ([addresses]) and
-/// renders the Google Map centered on the user's current location, marked
-/// as the route **start point**. On entry the route is computed **with the
-/// user's location as origin** (plus the form addresses as optimized stops):
-/// while it loads, a loading overlay is shown; when ready, the map draws the
-/// optimized polyline, numbered stop markers and a GPS marker that moves as
-/// the device location updates. The user's origin only uses the user marker
-/// (never a numbered one).
-///
-/// Once the route is ready an **Iniciar** button is shown: on tap,
-/// navigation starts — the camera follows the user continuously via the
-/// location stream and the polyline is trimmed to the path still ahead
-/// (the already traveled part is removed).
 class MapView extends StatefulWidget {
   const MapView({super.key, this.addresses});
 
-  /// Endereços preenchidos no formulário de rotas (A, B, C...), que viram
-  /// pontos de parada da rota calculada a partir da localização do usuário.
   final List<String>? addresses;
 
   @override
@@ -48,17 +31,13 @@ class _MapViewState extends State<MapView> {
 
   GoogleMapController? _mapController;
 
-  /// Icons for numbered waypoint markers, generated asynchronously.
   final Map<int, BitmapDescriptor> _numberedIcons = {};
 
-  /// Câmera inicial (fallback) exibida enquanto a localização do usuário
-  /// ainda não foi obtida.
   static const CameraPosition _initialCamera = CameraPosition(
-    target: LatLng(-23.5505, -46.6333), // São Paulo
+    target: LatLng(-23.5505, -46.6333),
     zoom: 14,
   );
 
-  /// Se a câmera já foi centralizada na primeira fixação de localização.
   bool _hasCenteredOnUser = false;
 
   @override
@@ -67,10 +46,9 @@ class _MapViewState extends State<MapView> {
     _viewmodel.startPoint.addListener(_onStartPointChanged);
     _viewmodel.route.addListener(_onRouteChanged);
     _generateWaypointIcons();
-    // Wires o listener de conectividade (idempotente) para o banner offline.
+
     _viewmodel.startConnectivityMonitoring();
-    // Entrada do mapa: repassa os endereços do formulário (a rota só é
-    // calculada quando a localização do usuário chega) e pede a localização.
+
     unawaited(_viewmodel.initializeRoute(widget.addresses ?? const []));
     _viewmodel.initializeLocation();
   }
@@ -84,9 +62,6 @@ class _MapViewState extends State<MapView> {
     super.dispose();
   }
 
-  /// Centraliza a câmera na localização atual assim que ela chega ao SSOT
-  /// (primeira fixação) e, durante a navegação, acompanha o usuário
-  /// continuamente a cada atualização do stream de localização.
   void _onStartPointChanged() {
     final point = _viewmodel.startPoint.value;
     if (point == null) {
@@ -101,13 +76,12 @@ class _MapViewState extends State<MapView> {
       _mapController?.animateCamera(cameraUpdate);
       return;
     }
-    // Navegação ativa: a câmera segue a posição do usuário em tempo real.
+
     if (_viewmodel.navigating.value) {
       _mapController?.animateCamera(cameraUpdate);
     }
   }
 
-  /// Rebuilds markers when the route changes.
   void _onRouteChanged() {
     _generateWaypointIcons().then((_) {
       if (mounted) {
@@ -116,10 +90,6 @@ class _MapViewState extends State<MapView> {
     });
   }
 
-  /// Generates numbered marker icons for every stop in the current route.
-  ///
-  /// Quando a rota começa na localização do usuário ([RouteEntity.userOrigin]),
-  /// essa origem não recebe ícone numerado — o marcador do usuário é o GPS.
   Future<void> _generateWaypointIcons() async {
     final route = _viewmodel.route.value;
     if (route == null) {
@@ -139,11 +109,9 @@ class _MapViewState extends State<MapView> {
     await Future.wait(futures);
   }
 
-  /// Marcadores: waypoints numerados + marcador GPS de cor diferente.
   Set<Marker> _buildMarkers(GeoPointEntity? gpsPoint, RouteEntity? route) {
     final markers = <Marker>{};
 
-    // Marcador GPS — cor diferente (azul) e atualizado em tempo real.
     if (gpsPoint != null) {
       markers.add(
         Marker(
@@ -158,8 +126,6 @@ class _MapViewState extends State<MapView> {
       );
     }
 
-    // Marcadores dos pontos de parada na ordem otimizada, com numeração.
-    // A origem do usuário (quando a rota começa nela) só tem o marcador GPS.
     if (route != null) {
       final markerOffset = route.startsFromUserLocation ? 1 : 0;
       for (var i = markerOffset; i < route.waypoints.length; i++) {
@@ -188,9 +154,6 @@ class _MapViewState extends State<MapView> {
     return markers;
   }
 
-  /// Polyline desenhada sobre o mapa. Durante a navegação recebe somente o
-  /// trecho ainda à frente do usuário ([MapViewmodel.remainingPolylinePoints]);
-  /// antes do início, a rota completa.
   Set<Polyline> _buildPolylines(List<GeoPointEntity> points) {
     if (points.isEmpty) {
       return const {};
@@ -226,7 +189,7 @@ class _MapViewState extends State<MapView> {
                         initialCameraPosition: _initialCamera,
                         onMapCreated: (controller) {
                           _mapController = controller;
-                          // A localização pode chegar antes do mapa estar pronto.
+
                           _onStartPointChanged();
                         },
                         markers: _buildMarkers(startPoint, route),
@@ -236,8 +199,7 @@ class _MapViewState extends State<MapView> {
                       ),
                       _buildLocationStatusOverlay(),
                       _buildRouteOrderOverlay(route),
-                      // Banner pequeno de "sem conexão": apenas aviso — a
-                      // navegação/tela do mapa continua funcionando offline.
+
                       ValueListenableBuilder<bool>(
                         valueListenable: _viewmodel.isOnline,
                         builder: (context, isOnline, _) {
@@ -255,11 +217,9 @@ class _MapViewState extends State<MapView> {
                           );
                         },
                       ),
-                      // Por cima dos demais: visível mesmo com rota anterior ainda
-                      // renderizada enquanto a nova é recalculada.
+
                       _buildRouteLoadingOverlay(),
-                      // Banner de recálculo automático: aparece na navegação
-                      // assim que a rota é recalculada por desvio do usuário.
+
                       ValueListenableBuilder<int>(
                         valueListenable: _viewmodel.routeRecalculationCount,
                         builder: (context, recalculationCount, _) {
@@ -271,14 +231,12 @@ class _MapViewState extends State<MapView> {
                           );
                         },
                       ),
-                      // Botão "Iniciar": só aparece com rota pronta e antes de
-                      // a navegação começar.
+
                       if (route != null && !navigating)
                         StartNavigationButton(
                           onPressed: _viewmodel.startNavigation,
                         ),
-                      // Por cima de todos: fim do trajeto (usuário chegou ao
-                      // destino final) com a ação de voltar ao formulário.
+
                       _buildRouteFinishedOverlay(),
                     ],
                   );
@@ -291,10 +249,6 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  /// Overlay exibido quando o usuário **fez todo o trajeto** e chegou ao
-  /// fim da polyline (destino final): mostra a conclusão e o botão para
-  /// voltar ao formulário de rotas. O retorno sinaliza a conclusão com
-  /// `true` para o formulário limpar o estado preenchido.
   Widget _buildRouteFinishedOverlay() {
     return ValueListenableBuilder<bool>(
       valueListenable: _viewmodel.routeFinished,
@@ -309,8 +263,6 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  /// Overlay exibido enquanto a rota otimizada (com a localização do usuário
-  /// como origem) é calculada na entrada do mapa.
   Widget _buildRouteLoadingOverlay() {
     return AnimatedBuilder(
       animation: _viewmodel.getRouteCommand,
@@ -354,10 +306,6 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  /// Overlay que exibe a ordem otimizada dos pontos com numeração.
-  ///
-  /// A origem do usuário (quando a rota começa nela) não entra na lista,
-  /// pois ela já é representada pelo marcador de localização do usuário.
   Widget _buildRouteOrderOverlay(RouteEntity? route) {
     if (route == null) {
       return const SizedBox.shrink();
@@ -428,8 +376,6 @@ class _MapViewState extends State<MapView> {
     );
   }
 
-  /// Estado do fluxo de localização sobre o mapa: carregamento, avisos
-  /// (permissão negada / GPS desligado) com a ação de recuperação.
   Widget _buildLocationStatusOverlay() {
     return ValueListenableBuilder<LocationAccessStatus>(
       valueListenable: _viewmodel.locationStatus,

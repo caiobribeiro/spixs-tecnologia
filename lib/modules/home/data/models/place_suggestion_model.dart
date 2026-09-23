@@ -1,9 +1,5 @@
 import '../../domain/entity/place_suggestion_entity.dart';
 
-/// DTO for a single Google Places Autocomplete prediction.
-///
-/// Serializes the `predictions[]` entries from
-/// `https://maps.googleapis.com/maps/api/place/autocomplete/json`.
 class PlaceSuggestionModel {
   const PlaceSuggestionModel({
     required this.placeId,
@@ -28,7 +24,6 @@ class PlaceSuggestionModel {
   final String mainText;
   final String secondaryText;
 
-  /// Converts this DTO into the domain entity.
   PlaceSuggestionEntity toEntity() {
     return PlaceSuggestionEntity(
       placeId: placeId,

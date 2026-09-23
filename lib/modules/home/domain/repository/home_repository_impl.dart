@@ -4,10 +4,6 @@ import '../../data/services/home_service.dart';
 import '../entity/home_summary_entity.dart';
 import 'home_repository.dart';
 
-/// Concrete [HomeRepository].
-///
-/// Delegates data access to the [HomeService] (data layer) and converts
-/// [HomeSummaryModel] into [HomeSummaryEntity].
 class HomeRepositoryImpl implements HomeRepository {
   HomeRepositoryImpl(this._service);
 

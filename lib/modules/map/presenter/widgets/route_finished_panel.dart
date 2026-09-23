@@ -6,17 +6,9 @@ import '../../../core/theme/domain/tokens/app_radii.dart';
 import '../../../core/theme/domain/tokens/app_spacing.dart';
 import '../../../core/theme/domain/tokens/app_typography.dart';
 
-/// Panel shown over the map when the user has **completed the whole route**
-/// (reached the end of the polyline — the destination): the navigation is
-/// finished and the user can go back to the routes form, clearing its state.
-///
-/// Pure component: receives the action callback from the parent View — it
-/// never touches repositories, services or the ViewModel.
 class RouteFinishedPanel extends StatelessWidget {
   const RouteFinishedPanel({super.key, required this.onGoBack});
 
-  /// Action triggered when the user taps [Voltar]: goes back to the routes
-  /// form view, clearing the filled form state.
   final VoidCallback onGoBack;
 
   @override

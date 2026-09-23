@@ -5,31 +5,7 @@ import 'tokens/app_radii.dart';
 import 'tokens/app_spacing.dart';
 import 'tokens/app_typography.dart';
 
-/// Builds a Flutter [ThemeData] **estritamente** a partir dos tokens do
-/// design system Rota (`Rota_Design_System.pdf`).
-///
-/// # Mapeamento (painel → tela de exemplo do DS)
-///
-/// | Token do DS            | ThemeData                                                    |
-/// |------------------------|--------------------------------------------------------------|
-/// | `surface-100`          | `scaffoldBackgroundColor` / `colorScheme.surface`            |
-/// | `surface-200`          | cards, campos (`fillColor`), bottom sheet, modais            |
-/// | `brand` / branco       | `colorScheme.primary`, botão elevado (ativo)                 |
-/// | `border` / `ink-muted` | botão desabilitado (fundo `border`, texto `ink-muted`)       |
-/// | `danger`               | `colorScheme.error`, borda de erro + mensagem `caption`      |
-/// | `ink`                  | `colorScheme.onSurface`, textos principais                   |
-/// | `ink-muted`            | `colorScheme.onSurfaceVariant`, legendas, placeholders       |
-/// | 6 estilos tipográficos | `display→displaySmall`, `title→headlineSmall`,               |
-/// |                        | `heading→titleMedium`, `body-strong→titleSmall/labelLarge`,  |
-/// |                        | `body→bodyLarge/Medium`, `caption→bodySmall`                 |
-/// | `radius-md`            | campos, botões e cards                                       |
-/// | `radius-lg`            | bottom sheet, modais e CTA em destaque ([primaryCtaButtonStyle]) |
-/// | `radius-sm`            | chips/badges                                                 |
 abstract final class AppTheme {
-  /// Botão de ação primária em destaque (ex.: botão **Iniciar**).
-  ///
-  /// Difere do botão elevado padrão apenas no raio: `radius-lg` (24px),
-  /// conforme *"Botão Iniciar em destaque"* no DS.
   static ButtonStyle primaryCtaButtonStyle() {
     return ElevatedButton.styleFrom(
       backgroundColor: AppColors.brand,
@@ -44,7 +20,6 @@ abstract final class AppTheme {
     );
   }
 
-  /// Constrói o [ThemeData] completo do app a partir dos tokens do DS.
   static ThemeData build() {
     const colorScheme = ColorScheme.light(
       primary: AppColors.brand,
@@ -78,20 +53,19 @@ abstract final class AppTheme {
     );
 
     final inputDecorationTheme = InputDecorationTheme(
-      // Campos: surface-200 · border · radius-md · padding space-3
       filled: true,
       fillColor: AppColors.surface200,
       contentPadding: const EdgeInsets.all(AppSpacing.space3),
       hintStyle: AppTypography.caption,
       labelStyle: AppTypography.body,
       floatingLabelStyle: AppTypography.caption,
-      // Mensagem de erro abaixo do campo: caption / danger
+
       errorStyle: AppTypography.caption.copyWith(color: AppColors.danger),
       enabledBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppRadii.radiusMd)),
         borderSide: BorderSide(color: AppColors.border),
       ),
-      // Foco: brand ("foco em campos")
+
       focusedBorder: const OutlineInputBorder(
         borderRadius: BorderRadius.all(Radius.circular(AppRadii.radiusMd)),
         borderSide: BorderSide(color: AppColors.brand),
@@ -106,12 +80,11 @@ abstract final class AppTheme {
       ),
     );
 
-    // Botões: campo · botão · card de endereço → radius-md
     final elevatedButtonTheme = ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.brand,
         foregroundColor: Colors.white,
-        // Botão inativo: fundo border, texto ink-muted
+
         disabledBackgroundColor: AppColors.border,
         disabledForegroundColor: AppColors.inkMuted,
         elevation: 0,
@@ -122,7 +95,6 @@ abstract final class AppTheme {
       ),
     );
 
-    // Link de texto (ex.: "Adicionar ponto"): brand · body-strong · sem ícone
     final textButtonTheme = TextButtonThemeData(
       style: TextButton.styleFrom(
         foregroundColor: AppColors.brand,
@@ -134,7 +106,6 @@ abstract final class AppTheme {
       ),
     );
 
-    // Chips e badges de status → radius-sm
     final chipTheme = ChipThemeData(
       backgroundColor: AppColors.surface200,
       side: const BorderSide(color: AppColors.border),
@@ -144,7 +115,6 @@ abstract final class AppTheme {
       ),
     );
 
-    // Cards → surface-200 · radius-md
     final cardTheme = CardThemeData(
       color: AppColors.surface200,
       elevation: 0,
@@ -154,7 +124,6 @@ abstract final class AppTheme {
       ),
     );
 
-    // Bottom sheet de rota / modais → surface-200 · radius-lg
     final bottomSheetTheme = BottomSheetThemeData(
       backgroundColor: AppColors.surface200,
       shape: const RoundedRectangleBorder(
@@ -173,7 +142,7 @@ abstract final class AppTheme {
 
     return ThemeData(
       colorScheme: colorScheme,
-      // Fundo da tela → surface-100
+
       scaffoldBackgroundColor: AppColors.surface100,
       textTheme: textTheme,
       inputDecorationTheme: inputDecorationTheme,
@@ -183,7 +152,7 @@ abstract final class AppTheme {
       cardTheme: cardTheme,
       bottomSheetTheme: bottomSheetTheme,
       dialogTheme: dialogTheme,
-      // Divisores → border
+
       dividerTheme: const DividerThemeData(
         color: AppColors.border,
         thickness: 1,

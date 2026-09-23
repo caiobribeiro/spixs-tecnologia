@@ -5,11 +5,6 @@ import '../../../core/theme/domain/tokens/app_colors.dart';
 import '../../../core/theme/domain/tokens/app_spacing.dart';
 import '../../../core/theme/domain/tokens/app_typography.dart';
 
-/// Native authentication gate shown before the rest of the app is revealed.
-///
-/// Pure presentation: receives its state and the unlock callback from the
-/// [HomeView]/[HomeViewmodel]. It never resolves dependencies, repositories
-/// or services directly.
 class AuthLockScreen extends StatelessWidget {
   const AuthLockScreen({
     super.key,
@@ -18,19 +13,15 @@ class AuthLockScreen extends StatelessWidget {
     this.errorMessage,
   });
 
-  /// Whether the native authentication dialog is currently open.
   final bool isAuthenticating;
 
-  /// Callback that triggers the native authentication.
   final VoidCallback onUnlock;
 
-  /// Failure message from the last authentication attempt, if any.
   final String? errorMessage;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // DS: tela de bloqueio em surface-200 (branco).
       backgroundColor: AppColors.surface200,
       body: SafeArea(
         child: Padding(

@@ -36,34 +36,26 @@ import 'modules/map/presenter/map_view/map_viewmodel.dart';
 
 final getIt = GetIt.instance;
 
-/// Registers every service, repository and viewmodel in the app.
-///
-/// Services and repositories are lazy singletons: a single shared instance
-/// per dependency. ViewModels are factories: a fresh instance per screen.
 void setupDependencyInjection() {
-  // ---- Core: auth (gate de autenticação nativa) ----
   getIt.registerLazySingleton<AuthService>(() => AuthService());
   getIt.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(getIt<AuthService>()),
   );
 
-  // ---- Core: theme (single source of truth do tema) ----
   getIt.registerLazySingleton<ThemeRepository>(
     () => ThemeRepositoryImpl(AppTheme.build()),
   );
 
-  // ---- Core: connectivity (listener de internet; SSOT no repo) ----
   getIt.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
   getIt.registerLazySingleton<ConnectivityRepository>(
     () => ConnectivityRepositoryImpl(getIt<ConnectivityService>()),
   );
 
-  // ---- Home module ----
   getIt.registerLazySingleton<HomeService>(() => HomeService());
   getIt.registerLazySingleton<HomeRepository>(
     () => HomeRepositoryImpl(getIt<HomeService>()),
   );
-  // Autocomplete de endereços (Google Places) do formulário de rotas.
+
   getIt.registerLazySingleton<PlacesService>(
     () => PlacesService(apiKey: AppConfig.googlePlacesApiKey),
   );
@@ -80,7 +72,6 @@ void setupDependencyInjection() {
     ),
   );
 
-  // ---- Map module ----
   getIt.registerLazySingleton<LocationService>(() => LocationService());
   getIt.registerLazySingleton<LocationRepository>(
     () => LocationRepositoryImpl(getIt<LocationService>()),
@@ -111,7 +102,6 @@ void setupDependencyInjection() {
     ),
   );
 
-  // ---- Map module: use cases ----
   getIt.registerLazySingleton<CalculateGeographicDistanceUseCase>(
     () => CalculateGeographicDistanceUseCase(),
   );
@@ -128,9 +118,8 @@ void setupDependencyInjection() {
     ),
   );
   getIt.registerLazySingleton<FindUnvisitedStopsUseCase>(
-    () => FindUnvisitedStopsUseCase(
-      getIt<CalculateGeographicDistanceUseCase>(),
-    ),
+    () =>
+        FindUnvisitedStopsUseCase(getIt<CalculateGeographicDistanceUseCase>()),
   );
   getIt.registerLazySingleton<DetectRouteCompletionUseCase>(
     () => DetectRouteCompletionUseCase(

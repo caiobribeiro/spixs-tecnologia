@@ -17,14 +17,10 @@ class HomeViewmodel extends ChangeNotifier {
     _repository.getSummary,
   );
 
-  /// Native authentication gate: biometria, senha, PIN ou padrão do
-  /// dispositivo (Android/iOS).
   late final authenticateCommand = Command0<bool>(_authRepository.authenticate);
 
-  /// Whether the user has already passed the native authentication gate.
   ValueListenable<bool> get isAuthenticated => _authRepository.isAuthenticated;
 
-  /// Human-readable message for the latest authentication failure, if any.
   String? get authenticationError {
     final result = authenticateCommand.result;
     switch (result) {
@@ -43,7 +39,6 @@ class HomeViewmodel extends ChangeNotifier {
     }
   }
 
-  /// The latest summary loaded by [getSummaryCommand], if any.
   HomeSummaryEntity? get summary {
     final result = getSummaryCommand.result;
     if (result is Ok<HomeSummaryEntity>) {
@@ -52,9 +47,7 @@ class HomeViewmodel extends ChangeNotifier {
     return null;
   }
 
-  /// Runs the native authentication gate.
   Future<void> authenticate() => authenticateCommand.execute();
 
-  /// Loads the connection summary for the home screen.
   Future<void> load() => getSummaryCommand.execute();
 }

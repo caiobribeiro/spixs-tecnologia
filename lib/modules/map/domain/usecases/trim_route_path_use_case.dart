@@ -1,15 +1,6 @@
 import '../entity/geo_point_entity.dart';
 
-/// Use case: trims a route polyline to the portion still ahead of the
-/// user.
-///
-/// Given the full decoded polyline of the computed route and the user's
-/// current location, returns the geometry that still needs to be traveled —
-/// the stretch already navigated is dropped so the map keeps drawing only
-/// the path ahead.
 class TrimRoutePathUseCase {
-  /// The sublist of [points] starting at the polyline point nearest to
-  /// [currentPosition]. When [points] is empty, returns an empty list.
   List<GeoPointEntity> execute({
     required List<GeoPointEntity> points,
     required GeoPointEntity currentPosition,

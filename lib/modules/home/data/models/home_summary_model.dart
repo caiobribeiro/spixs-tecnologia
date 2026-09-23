@@ -1,9 +1,5 @@
 import '../../domain/entity/home_summary_entity.dart';
 
-/// Data Transfer Object for the home summary payload.
-///
-/// Responsible for serialization/deserialization and for the conversion
-/// into the domain [HomeSummaryEntity].
 class HomeSummaryModel {
   const HomeSummaryModel({
     required this.isConnected,
@@ -31,7 +27,6 @@ class HomeSummaryModel {
     };
   }
 
-  /// Converts this DTO into the domain entity used by the presentation layer.
   HomeSummaryEntity toEntity() {
     return HomeSummaryEntity(
       isConnected: isConnected,
