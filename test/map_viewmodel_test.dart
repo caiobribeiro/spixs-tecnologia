@@ -6,6 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/modules/map/domain/entity/geo_point_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/location_access_status.dart';
+import 'package:spixs_tecnologia/modules/map/domain/entity/route_entity.dart';
+import 'package:spixs_tecnologia/modules/map/domain/entity/route_waypoint_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/location_access_failure.dart';
 import 'package:spixs_tecnologia/modules/map/presenter/map_viewmodel.dart';
 import 'package:spixs_tecnologia/shared/patterns/result.dart';
@@ -124,6 +126,68 @@ void main() {
       expect(mapRepository.computeRouteCalls, 1);
       expect(viewmodel.getRouteCommand.error, isTrue);
       expect(mapRepository.route.value, isNull);
+    });
+
+    test(
+        'startNavigation ativa a navegação e encurta a polyline para o '
+        'caminho à frente', () async {
+      const polyline = [
+        GeoPointEntity(latitude: -23.5505, longitude: -46.6333),
+        GeoPointEntity(latitude: -23.5510, longitude: -46.6340),
+        GeoPointEntity(latitude: -23.5520, longitude: -46.6350),
+        GeoPointEntity(latitude: -23.5530, longitude: -46.6360),
+      ];
+      final mapRepository = FakeMapRepository(
+        routeResult: Result.ok(
+          RouteEntity(
+            waypoints: [
+              RouteWaypointEntity(
+                address: 'Origem',
+                location: polyline[0],
+              ),
+              RouteWaypointEntity(
+                address: 'Destino',
+                location: polyline[3],
+              ),
+            ],
+            polylinePoints: polyline,
+            distanceMeters: 1000,
+            durationSeconds: 120,
+            optimizedIntermediateWaypointIndex: const <int>[],
+          ),
+        ),
+      );
+      final locationRepository =
+          FakeLocationRepository(startPoint: userLocation);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+
+      await viewmodel.initializeRoute(['Av. A', 'Rua B']);
+
+      // Antes de iniciar: polyline completa.
+      expect(viewmodel.remainingPolylinePoints, hasLength(polyline.length));
+
+      viewmodel.startNavigation();
+
+      expect(viewmodel.navigating.value, isTrue);
+      // Posição avança para o 3º ponto → restam apenas os pontos à frente.
+      locationRepository.startPoint.value = polyline[2];
+      expect(viewmodel.remainingPolylinePoints, hasLength(2));
+      expect(
+        viewmodel.remainingPolylinePoints.first.latitude,
+        polyline[2].latitude,
+      );
+    });
+
+    test('startNavigation é idempotente', () {
+      final mapRepository = FakeMapRepository();
+      final locationRepository =
+          FakeLocationRepository(startPoint: userLocation);
+      final viewmodel = MapViewmodel(mapRepository, locationRepository);
+
+      viewmodel.startNavigation();
+      viewmodel.startNavigation();
+
+      expect(viewmodel.navigating.value, isTrue);
     });
   });
 }
