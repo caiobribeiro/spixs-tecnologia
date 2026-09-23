@@ -1,8 +1,12 @@
-// Testes do formulário de endereços: validação e gestão dos campos A/B/C.
+// Testes do formulário de endereços: validação, gestão dos campos A/B/C e
+// autocomplete do Google Places (com repositório fake).
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
 import 'package:spixs_tecnologia/modules/home/presenter/routes_form_viewmodel.dart';
+
+import 'fakes/fake_places_repository.dart';
 
 void main() {
   group('RoutesFormViewmodel', () {
@@ -120,6 +124,90 @@ void main() {
       viewmodel.removeAddressField(99);
 
       expect(viewmodel.addressControllers, hasLength(4));
+    });
+  });
+
+  group('RoutesFormViewmodel — autocomplete', () {
+    const suggestion = PlaceSuggestionEntity(
+      placeId: 'ChIJ1',
+      description: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP, Brasil',
+      mainText: 'Av. Paulista, 1000',
+      secondaryText: 'Bela Vista, São Paulo - SP, Brasil',
+    );
+
+    test('consulta curta não dispara busca de sugestões', () async {
+      final repository = FakePlacesRepository();
+      final viewmodel = RoutesFormViewmodel(placesRepository: repository);
+
+      viewmodel.addressControllers[0].text = 'Av';
+      viewmodel.onAddressChanged(0, 'Av');
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(repository.calls, 0);
+      expect(viewmodel.suggestionsFor(0), isEmpty);
+    });
+
+    test('busca sugestões após o debounce e as expõe por campo', () async {
+      final repository = FakePlacesRepository(suggestions: const [suggestion]);
+      final viewmodel = RoutesFormViewmodel(placesRepository: repository);
+
+      viewmodel.addressControllers[1].text = 'Av Paulista';
+      viewmodel.onAddressChanged(1, 'Av Paulista');
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+
+      expect(repository.calls, 1);
+      expect(repository.lastInput, 'Av Paulista');
+      expect(viewmodel.suggestionsFor(1), hasLength(1));
+      expect(viewmodel.suggestionsFor(0), isEmpty);
+    });
+
+    test('digitação contínua cancela a busca anterior (debounce)', () async {
+      final repository = FakePlacesRepository(suggestions: const [suggestion]);
+      final viewmodel = RoutesFormViewmodel(placesRepository: repository);
+
+      viewmodel.addressControllers[0].text = 'Av';
+      viewmodel.onAddressChanged(0, 'Av');
+      viewmodel.addressControllers[0].text = 'Av P';
+      viewmodel.onAddressChanged(0, 'Av P');
+      viewmodel.addressControllers[0].text = 'Av Paulista';
+      viewmodel.onAddressChanged(0, 'Av Paulista');
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+
+      expect(repository.calls, 1);
+      expect(repository.lastInput, 'Av Paulista');
+      expect(viewmodel.suggestionsFor(0), hasLength(1));
+    });
+
+    test('selectSuggestion preenche o campo e limpa a lista', () async {
+      final repository = FakePlacesRepository(suggestions: const [suggestion]);
+      final viewmodel = RoutesFormViewmodel(placesRepository: repository);
+
+      viewmodel.addressControllers[0].text = 'Av Paulista';
+      viewmodel.onAddressChanged(0, 'Av Paulista');
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(viewmodel.suggestionsFor(0), hasLength(1));
+
+      viewmodel.selectSuggestion(0, suggestion);
+
+      expect(
+        viewmodel.addressControllers[0].text,
+        'Av. Paulista, 1000 - Bela Vista, São Paulo - SP, Brasil',
+      );
+      expect(viewmodel.suggestionsFor(0), isEmpty);
+    });
+
+    test('falha da API limpa sugestões sem lançar exceção', () async {
+      final repository = FakePlacesRepository(
+        error: Exception('Places API error: REQUEST_DENIED'),
+      );
+      final viewmodel = RoutesFormViewmodel(placesRepository: repository);
+
+      viewmodel.addressControllers[0].text = 'Av Paulista';
+      viewmodel.onAddressChanged(0, 'Av Paulista');
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+
+      expect(repository.calls, 1);
+      expect(viewmodel.suggestionsFor(0), isEmpty);
     });
   });
 }

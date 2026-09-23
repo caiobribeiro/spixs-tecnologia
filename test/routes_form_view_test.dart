@@ -1,16 +1,34 @@
 // Testes de widget do formulário "Para onde vamos?".
 //
 // Foco: botão "Confirmar rota" só clicável quando TODOS os endereços estão
-// preenchidos, e remoção de pontos adicionados (mantendo o mínimo A/B/C).
+// preenchidos, remoção de pontos adicionados (mantendo o mínimo A/B/C) e
+// autocomplete com sugestões do Google Places (via repositório fake).
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:spixs_tecnologia/app_dependency_injection.dart';
+import 'package:spixs_tecnologia/modules/home/domain/entity/place_suggestion_entity.dart';
+import 'package:spixs_tecnologia/modules/home/domain/repository/places_repository.dart';
 import 'package:spixs_tecnologia/modules/home/presenter/routes_form_view.dart';
 
+import 'fakes/fake_places_repository.dart';
+
 void main() {
+  const suggestion = PlaceSuggestionEntity(
+    placeId: 'ChIJ1',
+    description: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP, Brasil',
+    mainText: 'Av. Paulista, 1000',
+    secondaryText: 'Bela Vista, São Paulo - SP, Brasil',
+  );
+
   setUpAll(setupDependencyInjection);
+
+  /// Sem rede nos testes: sobrescreve o repositório com um fake vazio.
+  setUp(() {
+    getIt.allowReassignment = true;
+    getIt.registerSingleton<PlacesRepository>(FakePlacesRepository());
+  });
 
   /// Botão "Confirmar rota" exibido na tela.
   ElevatedButton confirmButton(WidgetTester tester) =>
@@ -21,6 +39,18 @@ void main() {
     await tester.pump();
   }
 
+  /// Digita no campo [index] e avança o relógio para o debounce do
+  /// autocomplete disparar e a resposta do fake ser aplicada.
+  Future<void> typeAddress(
+    WidgetTester tester,
+    int index,
+    String text,
+  ) async {
+    await tester.enterText(find.byType(TextFormField).at(index), text);
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump();
+  }
+
   testWidgets('botão Confirmar rota só habilita com todos os endereços',
       (tester) async {
     await pumpForm(tester);
@@ -28,15 +58,13 @@ void main() {
     expect(confirmButton(tester).onPressed, isNull);
 
     // Preenche A e B apenas: continua desabilitado e mostra a instrução.
-    await tester.enterText(find.byType(TextFormField).at(0), 'Rua A');
-    await tester.enterText(find.byType(TextFormField).at(1), 'Rua B');
-    await tester.pump();
+    await typeAddress(tester, 0, 'Rua A');
+    await typeAddress(tester, 1, 'Rua B');
     expect(confirmButton(tester).onPressed, isNull);
     expect(find.text('Preencha os 3 endereços para continuar'), findsOneWidget);
 
     // Preenche C: habilita e esconde a instrução.
-    await tester.enterText(find.byType(TextFormField).at(2), 'Rua C');
-    await tester.pump();
+    await typeAddress(tester, 2, 'Rua C');
     expect(confirmButton(tester).onPressed, isNotNull);
     expect(find.text('Preencha os 3 endereços para continuar'), findsNothing);
   });
@@ -45,10 +73,9 @@ void main() {
       (tester) async {
     await pumpForm(tester);
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'Rua A');
-    await tester.enterText(find.byType(TextFormField).at(1), 'Rua B');
-    await tester.enterText(find.byType(TextFormField).at(2), 'Rua C');
-    await tester.pump();
+    await typeAddress(tester, 0, 'Rua A');
+    await typeAddress(tester, 1, 'Rua B');
+    await typeAddress(tester, 2, 'Rua C');
     expect(confirmButton(tester).onPressed, isNotNull);
 
     await tester.tap(find.text('Adicionar ponto'));
@@ -59,8 +86,7 @@ void main() {
     expect(find.text('Preencha todos os endereços para continuar'),
         findsOneWidget);
 
-    await tester.enterText(find.byType(TextFormField).at(3), 'Rua D');
-    await tester.pump();
+    await typeAddress(tester, 3, 'Rua D');
     expect(confirmButton(tester).onPressed, isNotNull);
   });
 
@@ -77,9 +103,8 @@ void main() {
 
     // Preenche os 4 pontos e remove o último.
     for (var i = 0; i < 4; i++) {
-      await tester.enterText(find.byType(TextFormField).at(i), 'Rua ${i + 1}');
+      await typeAddress(tester, i, 'Rua ${i + 1}');
     }
-    await tester.pump();
     expect(confirmButton(tester).onPressed, isNotNull);
 
     await tester.tap(find.byIcon(Icons.close).last);
@@ -98,8 +123,48 @@ void main() {
     // Todos os campos vazios com autovalidate: mensagens na tela.
     expect(find.text('Campo obrigatório'), findsNWidgets(3));
 
-    await tester.enterText(find.byType(TextFormField).at(0), 'Rua A');
-    await tester.pump();
+    await typeAddress(tester, 0, 'Rua A');
     expect(find.text('Campo obrigatório'), findsNWidgets(2));
+  });
+
+  testWidgets('autocomplete exibe sugestões e a seleção preenche o campo',
+      (tester) async {
+    getIt.registerSingleton<PlacesRepository>(
+      FakePlacesRepository(suggestions: const [suggestion]),
+    );
+
+    await pumpForm(tester);
+    await typeAddress(tester, 0, 'Av Paulista');
+
+    // Sugestão do Google Places renderizada como card abaixo do campo.
+    expect(find.text('Av. Paulista, 1000'), findsOneWidget);
+    expect(find.text('Bela Vista, São Paulo - SP, Brasil'), findsOneWidget);
+
+    // Selecionar preenche o campo com a descrição completa e fecha a lista.
+    await tester.tap(find.text('Av. Paulista, 1000'));
+    await tester.pump();
+
+    final field = tester.widget<TextFormField>(find.byType(TextFormField).at(0));
+    expect(
+      field.controller!.text,
+      'Av. Paulista, 1000 - Bela Vista, São Paulo - SP, Brasil',
+    );
+    expect(find.text('Av. Paulista, 1000'), findsNothing);
+
+    // Ponto A preenchido pelo autocomplete: ainda falta B e C.
+    expect(confirmButton(tester).onPressed, isNull);
+  });
+
+  testWidgets('autocomplete não exibe sugestões para consulta curta',
+      (tester) async {
+    getIt.registerSingleton<PlacesRepository>(
+      FakePlacesRepository(suggestions: const [suggestion]),
+    );
+
+    await pumpForm(tester);
+    await typeAddress(tester, 0, 'Av');
+
+    // Menos de 3 caracteres: nenhuma sugestão é buscada/exibida.
+    expect(find.text('Av. Paulista, 1000'), findsNothing);
   });
 }
