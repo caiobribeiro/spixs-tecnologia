@@ -15,7 +15,10 @@ import 'modules/home/domain/repository/places_repository.dart';
 import 'modules/home/domain/repository/places_repository_impl.dart';
 import 'modules/home/presenter/home_viewmodel.dart';
 import 'modules/home/presenter/routes_form_viewmodel.dart';
+import 'modules/map/data/services/location_service.dart';
 import 'modules/map/data/services/map_service.dart';
+import 'modules/map/domain/repository/location_repository.dart';
+import 'modules/map/domain/repository/location_repository_impl.dart';
 import 'modules/map/domain/repository/map_repository.dart';
 import 'modules/map/domain/repository/map_repository_impl.dart';
 import 'modules/map/presenter/map_viewmodel.dart';
@@ -58,6 +61,10 @@ void setupDependencyInjection() {
   );
 
   // ---- Map module ----
+  getIt.registerLazySingleton<LocationService>(() => LocationService());
+  getIt.registerLazySingleton<LocationRepository>(
+    () => LocationRepositoryImpl(getIt<LocationService>()),
+  );
   getIt.registerLazySingleton<MapService>(
     () => MapService(apiKey: AppConfig.googleMapsApiKey),
   );
@@ -65,6 +72,9 @@ void setupDependencyInjection() {
     () => MapRepositoryImpl(getIt<MapService>()),
   );
   getIt.registerFactory<MapViewmodel>(
-    () => MapViewmodel(getIt<MapRepository>()),
+    () => MapViewmodel(
+      getIt<MapRepository>(),
+      getIt<LocationRepository>(),
+    ),
   );
 }
