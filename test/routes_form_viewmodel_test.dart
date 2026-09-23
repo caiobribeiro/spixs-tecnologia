@@ -255,4 +255,57 @@ void main() {
       );
     });
   });
+
+  group('RoutesFormViewmodel.resetForm', () {
+    test('limpa textos, sugestões e campos adicionados (volta ao estado '
+        'inicial A/B/C vazios)', () {
+      final viewmodel = RoutesFormViewmodel();
+      viewmodel.addressControllers[0].text = 'Av. Paulista, 1000';
+      viewmodel.addressControllers[1].text = 'Rua B';
+      viewmodel.addressControllers[2].text = 'Rua C';
+      viewmodel.addAddressField();
+      viewmodel.addressControllers[3].text = 'Rua D';
+      expect(viewmodel.addressControllers, hasLength(4));
+      expect(viewmodel.canConfirm, isTrue);
+
+      viewmodel.resetForm();
+
+      expect(viewmodel.addressControllers, hasLength(3));
+      expect(viewmodel.canConfirm, isFalse);
+      expect(viewmodel.canRemoveAddressField, isFalse);
+      for (final controller in viewmodel.addressControllers) {
+        expect(controller.text, isEmpty);
+      }
+    });
+
+    test('descarta sugestões exibidas e cancela buscas pendentes', () async {
+      const suggestion = PlaceSuggestionEntity(
+        placeId: 'ChIJ1',
+        description: 'Av. Paulista, 1000 - Bela Vista, São Paulo - SP, Brasil',
+        mainText: 'Av. Paulista, 1000',
+        secondaryText: 'Bela Vista, São Paulo - SP, Brasil',
+      );
+      final repository = FakePlacesRepository(suggestions: const [suggestion]);
+      final viewmodel = RoutesFormViewmodel(placesRepository: repository);
+
+      // Sugestões carregadas após o debounce → expostas no campo 0.
+      viewmodel.addressControllers[0].text = 'Av Paulista';
+      viewmodel.onAddressChanged(0, 'Av Paulista');
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(viewmodel.suggestionsFor(0), hasLength(1));
+      expect(repository.calls, 1);
+
+      // Busca pendente (debounce agendado) antes do reset.
+      viewmodel.onAddressChanged(0, 'av paulista');
+
+      viewmodel.resetForm();
+
+      expect(viewmodel.suggestionsFor(0), isEmpty);
+      // O timer pendente foi cancelado: após o debounce não há nova busca
+      // nem sugestões voltam a aparecer.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      expect(repository.calls, 1);
+      expect(viewmodel.suggestionsFor(0), isEmpty);
+    });
+  });
 }

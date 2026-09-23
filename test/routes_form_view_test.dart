@@ -188,7 +188,7 @@ void main() {
         onGenerateRoute: (settings) {
           pushedRouteName = settings.name;
           pushedArguments = settings.arguments as List<String>?;
-          return MaterialPageRoute<void>(
+          return MaterialPageRoute<bool?>(
             settings: settings,
             builder: (_) => const Scaffold(body: SizedBox.shrink()),
           );
@@ -210,5 +210,45 @@ void main() {
     expect(pushedRouteName, AppRoute.map.path);
     expect(pushedRouteName, '/map');
     expect(pushedArguments, orderedEquals(['Rua A', 'Rua B', 'Rua C']));
+  });
+
+  testWidgets('voltar do mapa com trajeto concluído limpa o formulário', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: const RoutesFormView(),
+        onGenerateRoute: (settings) => MaterialPageRoute<bool?>(
+          settings: settings,
+          builder: (_) => const Scaffold(body: SizedBox.shrink()),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    // Preenche os 3 endereços e confirma (empurra o mapa dummy).
+    await typeAddress(tester, 0, 'Rua A');
+    await typeAddress(tester, 1, 'Rua B');
+    await typeAddress(tester, 2, 'Rua C');
+    expect(confirmButton(tester).onPressed, isNotNull);
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
+    // Formulário já não está visível (mapa por cima).
+    expect(find.text('Para onde vamos?'), findsNothing);
+
+    // Usuário fez todo o trajeto: o mapa volta com `true` → form limpado.
+    final mapContext = tester.element(find.byType(Scaffold).last);
+    Navigator.of(mapContext).pop(true);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Para onde vamos?'), findsOneWidget);
+    // Campos de volta ao estado inicial: vazios e botão desabilitado.
+    for (var i = 0; i < 3; i++) {
+      final field = tester.widget<TextFormField>(
+        find.byType(TextFormField).at(i),
+      );
+      expect(field.controller!.text, isEmpty);
+    }
+    expect(confirmButton(tester).onPressed, isNull);
   });
 }

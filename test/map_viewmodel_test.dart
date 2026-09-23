@@ -10,6 +10,7 @@ import 'package:spixs_tecnologia/modules/map/domain/entity/route_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/entity/route_waypoint_entity.dart';
 import 'package:spixs_tecnologia/modules/map/domain/location_access_failure.dart';
 import 'package:spixs_tecnologia/modules/map/domain/usecases/calculate_geographic_distance_use_case.dart';
+import 'package:spixs_tecnologia/modules/map/domain/usecases/detect_route_completion_use_case.dart';
 import 'package:spixs_tecnologia/modules/map/domain/usecases/detect_route_deviation_use_case.dart';
 import 'package:spixs_tecnologia/modules/map/domain/usecases/find_unvisited_stops_use_case.dart';
 import 'package:spixs_tecnologia/modules/map/domain/usecases/trim_route_path_use_case.dart';
@@ -32,6 +33,9 @@ void main() {
   final findUnvisitedStops = FindUnvisitedStopsUseCase(
     CalculateGeographicDistanceUseCase(),
   );
+  final detectRouteCompletion = DetectRouteCompletionUseCase(
+    CalculateGeographicDistanceUseCase(),
+  );
 
   group(
     'MapViewmodel — rota na entrada do mapa com a localização do usuário',
@@ -50,6 +54,7 @@ void main() {
             markerIconsUseCase,
             detectRouteDeviation,
             findUnvisitedStops,
+            detectRouteCompletion,
           );
 
           await viewmodel.initializeRoute(['Av. A', 'Rua B', 'Rua C']);
@@ -79,6 +84,7 @@ void main() {
           markerIconsUseCase,
           detectRouteDeviation,
           findUnvisitedStops,
+          detectRouteCompletion,
         );
 
         await viewmodel.initializeRoute(const []);
@@ -99,6 +105,7 @@ void main() {
           markerIconsUseCase,
           detectRouteDeviation,
           findUnvisitedStops,
+          detectRouteCompletion,
         );
 
         // Entrada do mapa: ainda sem localização no SSOT → não calcula.
@@ -129,6 +136,7 @@ void main() {
             markerIconsUseCase,
             detectRouteDeviation,
             findUnvisitedStops,
+            detectRouteCompletion,
           );
           locationRepository.accessResult = const Result.error(
             LocationPermissionDeniedFailure(),
@@ -154,6 +162,7 @@ void main() {
           markerIconsUseCase,
           detectRouteDeviation,
           findUnvisitedStops,
+          detectRouteCompletion,
         );
 
         await viewmodel.initializeRoute(['Av. A', 'Rua B', 'Rua C']);
@@ -185,6 +194,7 @@ void main() {
           markerIconsUseCase,
           detectRouteDeviation,
           findUnvisitedStops,
+          detectRouteCompletion,
         );
 
         await viewmodel.initializeRoute(['Av. A', 'Rua B', 'Rua C']);
@@ -226,6 +236,7 @@ void main() {
           markerIconsUseCase,
           detectRouteDeviation,
           findUnvisitedStops,
+          detectRouteCompletion,
         );
 
         await viewmodel.initializeRoute(['Av. A', 'Rua B']);
@@ -257,6 +268,7 @@ void main() {
           markerIconsUseCase,
           detectRouteDeviation,
           findUnvisitedStops,
+          detectRouteCompletion,
         );
 
         viewmodel.startNavigation();
@@ -307,6 +319,7 @@ void main() {
         markerIconsUseCase,
         detectRouteDeviation,
         findUnvisitedStops,
+        detectRouteCompletion,
       );
 
       await viewmodel.initializeRoute(['Parada A', 'Parada B']);
@@ -342,6 +355,7 @@ void main() {
         markerIconsUseCase,
         detectRouteDeviation,
         findUnvisitedStops,
+        detectRouteCompletion,
       );
 
       await viewmodel.initializeRoute(['Parada A', 'Parada B']);
@@ -369,6 +383,7 @@ void main() {
         markerIconsUseCase,
         detectRouteDeviation,
         findUnvisitedStops,
+        detectRouteCompletion,
       );
 
       await viewmodel.initializeRoute(['Parada A', 'Parada B']);
@@ -403,11 +418,126 @@ void main() {
         markerIconsUseCase,
         detectRouteDeviation,
         findUnvisitedStops,
+        detectRouteCompletion,
       );
 
       await viewmodel.initializeRoute(['Parada A', 'Parada B']);
 
       // Posição muda (GPS), mas a navegação nunca começou.
+      locationRepository.startPoint.value = offRoute;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(mapRepository.computeRouteCalls, 1);
+      expect(viewmodel.routeRecalculationCount.value, 0);
+    });
+  });
+
+  group('MapViewmodel — fim do trajeto (fim da polyline)', () {
+    const routeOrigin =
+        GeoPointEntity(latitude: -23.5505, longitude: -46.6333);
+    const stopA =
+        GeoPointEntity(latitude: -23.5512, longitude: -46.6342);
+    const stopB =
+        GeoPointEntity(latitude: -23.5520, longitude: -46.6350);
+    // ~220m ao norte da rota: além do threshold de desvio (150m).
+    const offRoute =
+        GeoPointEntity(latitude: -23.5485, longitude: -46.6333);
+
+    RouteEntity routeWithStops() => RouteEntity(
+          waypoints: [
+            const RouteWaypointEntity(address: 'Sua localização', location: routeOrigin),
+            const RouteWaypointEntity(address: 'Parada A', location: stopA),
+            const RouteWaypointEntity(address: 'Parada B', location: stopB),
+          ],
+          // A polyline termina exatamente no destino final (último ponto).
+          polylinePoints: const [routeOrigin, stopA, stopB],
+          distanceMeters: 2400,
+          durationSeconds: 300,
+          optimizedIntermediateWaypointIndex: const <int>[],
+          userOrigin: routeOrigin,
+        );
+
+    MapViewmodel buildViewmodel(
+      FakeMapRepository mapRepository,
+      FakeLocationRepository locationRepository,
+    ) {
+      return MapViewmodel(
+        mapRepository,
+        locationRepository,
+        trimRoutePath,
+        markerIconsUseCase,
+        detectRouteDeviation,
+        findUnvisitedStops,
+        detectRouteCompletion,
+      );
+    }
+
+    test('chegar ao fim da polyline marca o trajeto como concluído', () async {
+      final mapRepository = FakeMapRepository(
+        routeResult: Result.ok(routeWithStops()),
+      );
+      final locationRepository = FakeLocationRepository(
+        startPoint: routeOrigin,
+      );
+      final viewmodel = buildViewmodel(mapRepository, locationRepository);
+
+      await viewmodel.initializeRoute(['Parada A', 'Parada B']);
+      viewmodel.startNavigation();
+      expect(viewmodel.routeFinished.value, isFalse);
+
+      // No meio do trajeto: ainda não concluído.
+      locationRepository.startPoint.value = stopA;
+      await Future<void>.delayed(Duration.zero);
+      expect(viewmodel.routeFinished.value, isFalse);
+
+      // No fim da polyline (último ponto): concluído.
+      locationRepository.startPoint.value = stopB;
+      await Future<void>.delayed(Duration.zero);
+      expect(viewmodel.routeFinished.value, isTrue);
+      // Concluído sem requisições extras além da rota inicial.
+      expect(mapRepository.computeRouteCalls, 1);
+    });
+
+    test('conclui ao chegar perto do fim da polyline, mesmo sem visitar ' 
+        'todas as paradas formalmente', () async {
+      final mapRepository = FakeMapRepository(
+        routeResult: Result.ok(routeWithStops()),
+      );
+      final locationRepository = FakeLocationRepository(
+        startPoint: routeOrigin,
+      );
+      final viewmodel = buildViewmodel(mapRepository, locationRepository);
+
+      await viewmodel.initializeRoute(['Parada A', 'Parada B']);
+      viewmodel.startNavigation();
+
+      // ~30m antes do fim da polyline (dentro do raio de conclusão de 50m),
+      // sem nunca ter chegado perto da parada B: o fim da polyline decide.
+      const nearDestination =
+          GeoPointEntity(latitude: -23.5517, longitude: -46.6350);
+      locationRepository.startPoint.value = nearDestination;
+      await Future<void>.delayed(Duration.zero);
+
+      expect(viewmodel.routeFinished.value, isTrue);
+    });
+
+    test('depois de concluído, desvio não dispara recálculo', () async {
+      final mapRepository = FakeMapRepository(
+        routeResult: Result.ok(routeWithStops()),
+      );
+      final locationRepository = FakeLocationRepository(
+        startPoint: routeOrigin,
+      );
+      final viewmodel = buildViewmodel(mapRepository, locationRepository);
+
+      await viewmodel.initializeRoute(['Parada A', 'Parada B']);
+      viewmodel.startNavigation();
+      locationRepository.startPoint.value = stopB;
+      await Future<void>.delayed(Duration.zero);
+      expect(viewmodel.routeFinished.value, isTrue);
+
+      // Mesmo longe da rota (desvio), o trajeto concluído permanece: sem
+      // recálculo e o contador continua zerado.
       locationRepository.startPoint.value = offRoute;
       await Future<void>.delayed(Duration.zero);
 
