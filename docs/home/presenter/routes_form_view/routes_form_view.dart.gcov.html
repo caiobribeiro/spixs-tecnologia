@@ -1,0 +1,249 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - home/presenter/routes_form_view/routes_form_view.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory home/presenter/routes_form_view">home/presenter/routes_form_view</a> - routes_form_view.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryHi">98.5&nbsp;%</td>
+            <td class="headerCovTableEntry">65</td>
+            <td class="headerCovTableEntry">64</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-09-23 20:04:55</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : import 'package:flutter/material.dart';</span>
+<span id="L2"><span class="lineNum">       2</span>              : import 'package:spixs_tecnologia/app_dependency_injection.dart';</span>
+<span id="L3"><span class="lineNum">       3</span>              : </span>
+<span id="L4"><span class="lineNum">       4</span>              : import '../../../../app_routes.dart';</span>
+<span id="L5"><span class="lineNum">       5</span>              : import '../../../../shared/widgets/connectivity_warning_banner.dart';</span>
+<span id="L6"><span class="lineNum">       6</span>              : import '../../../core/theme/domain/app_theme.dart';</span>
+<span id="L7"><span class="lineNum">       7</span>              : import '../../../core/theme/domain/tokens/app_spacing.dart';</span>
+<span id="L8"><span class="lineNum">       8</span>              : import '../../../core/theme/domain/tokens/app_typography.dart';</span>
+<span id="L9"><span class="lineNum">       9</span>              : import '../widgets/address_autocomplete_field.dart';</span>
+<span id="L10"><span class="lineNum">      10</span>              : import 'routes_form_viewmodel.dart';</span>
+<span id="L11"><span class="lineNum">      11</span>              : </span>
+<span id="L12"><span class="lineNum">      12</span>              : /// Form screen: &quot;Para onde vamos?&quot;.</span>
+<span id="L13"><span class="lineNum">      13</span>              : ///</span>
+<span id="L14"><span class="lineNum">      14</span>              : /// Autocomplete de endereços do design system Rota: começa com os 3 pontos</span>
+<span id="L15"><span class="lineNum">      15</span>              : /// A/B/C (&quot;Ponto A&quot;, &quot;Ponto B&quot;, &quot;Ponto C&quot;) e permite adicionar novos pontos</span>
+<span id="L16"><span class="lineNum">      16</span>              : /// idênticos — e remover os adicionados, mantendo o mínimo A/B/C. Cada</span>
+<span id="L17"><span class="lineNum">      17</span>              : /// campo autocompleta o endereço digitado com o Google Places ([AddressAutocompleteField]).</span>
+<span id="L18"><span class="lineNum">      18</span>              : /// O botão **Confirmar rota** (radius-lg) só fica ativo depois que **todos**</span>
+<span id="L19"><span class="lineNum">      19</span>              : /// os endereços exibidos estão preenchidos.</span>
+<span id="L20"><span class="lineNum">      20</span>              : class RoutesFormView extends StatefulWidget {</span>
+<span id="L21"><span class="lineNum">      21</span> <span class="tlaGNC">           3 :   const RoutesFormView({super.key});</span></span>
+<span id="L22"><span class="lineNum">      22</span>              : </span>
+<span id="L23"><span class="lineNum">      23</span> <span class="tlaGNC">           2 :   @override</span></span>
+<span id="L24"><span class="lineNum">      24</span> <span class="tlaGNC">           2 :   State&lt;RoutesFormView&gt; createState() =&gt; _RoutesFormViewState();</span></span>
+<span id="L25"><span class="lineNum">      25</span>              : }</span>
+<span id="L26"><span class="lineNum">      26</span>              : </span>
+<span id="L27"><span class="lineNum">      27</span>              : class _RoutesFormViewState extends State&lt;RoutesFormView&gt; {</span>
+<span id="L28"><span class="lineNum">      28</span>              :   final RoutesFormViewmodel _viewmodel = getIt&lt;RoutesFormViewmodel&gt;();</span>
+<span id="L29"><span class="lineNum">      29</span>              :   final GlobalKey&lt;FormState&gt; _formKey = GlobalKey&lt;FormState&gt;();</span>
+<span id="L30"><span class="lineNum">      30</span>              : </span>
+<span id="L31"><span class="lineNum">      31</span> <span class="tlaGNC">           2 :   @override</span></span>
+<span id="L32"><span class="lineNum">      32</span>              :   void initState() {</span>
+<span id="L33"><span class="lineNum">      33</span> <span class="tlaGNC">           2 :     super.initState();</span></span>
+<span id="L34"><span class="lineNum">      34</span>              :     // Wires o listener de conectividade (idempotente) assim que a tela abre.</span>
+<span id="L35"><span class="lineNum">      35</span> <span class="tlaGNC">           4 :     _viewmodel.startConnectivityMonitoring();</span></span>
+<span id="L36"><span class="lineNum">      36</span>              :   }</span>
+<span id="L37"><span class="lineNum">      37</span>              : </span>
+<span id="L38"><span class="lineNum">      38</span> <span class="tlaGNC">           2 :   @override</span></span>
+<span id="L39"><span class="lineNum">      39</span>              :   Widget build(BuildContext context) {</span>
+<span id="L40"><span class="lineNum">      40</span> <span class="tlaGNC">           2 :     return Scaffold(</span></span>
+<span id="L41"><span class="lineNum">      41</span> <span class="tlaGNC">           2 :       body: SafeArea(</span></span>
+<span id="L42"><span class="lineNum">      42</span> <span class="tlaGNC">           2 :         child: ListenableBuilder(</span></span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaGNC">           2 :           listenable: _viewmodel,</span></span>
+<span id="L44"><span class="lineNum">      44</span> <span class="tlaGNC">           2 :           builder: (context, _) {</span></span>
+<span id="L45"><span class="lineNum">      45</span> <span class="tlaGNC">           2 :             return ValueListenableBuilder&lt;bool&gt;(</span></span>
+<span id="L46"><span class="lineNum">      46</span> <span class="tlaGNC">           4 :               valueListenable: _viewmodel.isOnline,</span></span>
+<span id="L47"><span class="lineNum">      47</span> <span class="tlaGNC">           2 :               builder: (context, isOnline, _) {</span></span>
+<span id="L48"><span class="lineNum">      48</span> <span class="tlaGNC">           2 :                 return Form(</span></span>
+<span id="L49"><span class="lineNum">      49</span> <span class="tlaGNC">           2 :                   key: _formKey,</span></span>
+<span id="L50"><span class="lineNum">      50</span> <span class="tlaGNC">           2 :                   child: ListView(</span></span>
+<span id="L51"><span class="lineNum">      51</span>              :                     padding: const EdgeInsets.all(AppSpacing.space4),</span>
+<span id="L52"><span class="lineNum">      52</span> <span class="tlaGNC">           2 :                     children: [</span></span>
+<span id="L53"><span class="lineNum">      53</span>              :                       // Título da tela: estilo `title`, margem inferior `space-4`.</span>
+<span id="L54"><span class="lineNum">      54</span> <span class="tlaGNC">           4 :                       Text('Para onde vamos?', style: AppTypography.title),</span></span>
+<span id="L55"><span class="lineNum">      55</span>              :                       // Aviso de conexão: sem internet a rota não pode ser</span>
+<span id="L56"><span class="lineNum">      56</span>              :                       // confirmada (botão desabilitado abaixo da lista).</span>
+<span id="L57"><span class="lineNum">      57</span> <span class="tlaGNC">           1 :                       if (!isOnline) ...[</span></span>
+<span id="L58"><span class="lineNum">      58</span>              :                         const SizedBox(height: AppSpacing.space3),</span>
+<span id="L59"><span class="lineNum">      59</span>              :                         const ConnectivityWarningBanner(),</span>
+<span id="L60"><span class="lineNum">      60</span>              :                       ],</span>
+<span id="L61"><span class="lineNum">      61</span> <span class="tlaGNC">           2 :                       const SizedBox(height: AppSpacing.space4),</span></span>
+<span id="L62"><span class="lineNum">      62</span> <span class="tlaGNC">           2 :                       ..._buildAddressFields(),</span></span>
+<span id="L63"><span class="lineNum">      63</span> <span class="tlaGNC">           2 :                       const SizedBox(height: AppSpacing.space2),</span></span>
+<span id="L64"><span class="lineNum">      64</span>              :                       // Link &quot;Adicionar ponto&quot;: brand · body-strong · sem ícone.</span>
+<span id="L65"><span class="lineNum">      65</span> <span class="tlaGNC">           2 :                       Align(</span></span>
+<span id="L66"><span class="lineNum">      66</span>              :                         alignment: Alignment.centerLeft,</span>
+<span id="L67"><span class="lineNum">      67</span> <span class="tlaGNC">           2 :                         child: TextButton(</span></span>
+<span id="L68"><span class="lineNum">      68</span> <span class="tlaGNC">           4 :                           onPressed: _viewmodel.addAddressField,</span></span>
+<span id="L69"><span class="lineNum">      69</span>              :                           child: const Text('Adicionar ponto'),</span>
+<span id="L70"><span class="lineNum">      70</span>              :                         ),</span>
+<span id="L71"><span class="lineNum">      71</span>              :                       ),</span>
+<span id="L72"><span class="lineNum">      72</span> <span class="tlaGNC">           2 :                       const SizedBox(height: AppSpacing.space4),</span></span>
+<span id="L73"><span class="lineNum">      73</span> <span class="tlaGNC">           2 :                       ElevatedButton(</span></span>
+<span id="L74"><span class="lineNum">      74</span>              :                         // CTA em destaque: radius-lg; inativo = fundo border +</span>
+<span id="L75"><span class="lineNum">      75</span>              :                         // texto ink-muted, ativo = fundo brand + texto branco.</span>
+<span id="L76"><span class="lineNum">      76</span> <span class="tlaGNC">           2 :                         style: AppTheme.primaryCtaButtonStyle(),</span></span>
+<span id="L77"><span class="lineNum">      77</span> <span class="tlaGNC">           5 :                         onPressed: _viewmodel.canConfirm ? _confirmRoute : null,</span></span>
+<span id="L78"><span class="lineNum">      78</span>              :                         child: const Text('Confirmar rota'),</span>
+<span id="L79"><span class="lineNum">      79</span>              :                       ),</span>
+<span id="L80"><span class="lineNum">      80</span> <span class="tlaGNC">           6 :                       if (!_viewmodel.canConfirm) ...[</span></span>
+<span id="L81"><span class="lineNum">      81</span>              :                         const SizedBox(height: AppSpacing.space2),</span>
+<span id="L82"><span class="lineNum">      82</span> <span class="tlaGNC">           2 :                         Text(</span></span>
+<span id="L83"><span class="lineNum">      83</span>              :                           !isOnline</span>
+<span id="L84"><span class="lineNum">      84</span>              :                               ? 'Sem conexão com a internet — a rota não '</span>
+<span id="L85"><span class="lineNum">      85</span>              :                                     'pode ser confirmada'</span>
+<span id="L86"><span class="lineNum">      86</span>              :                               : // Regra de seleção: preenchido mas sem escolher</span>
+<span id="L87"><span class="lineNum">      87</span>              :                               // uma das sugestões → orienta o usuário.</span>
+<span id="L88"><span class="lineNum">      88</span> <span class="tlaGNC">           4 :                               _viewmodel.allAddressesFilled &amp;&amp;</span></span>
+<span id="L89"><span class="lineNum">      89</span> <span class="tlaGNC">           2 :                                       !_viewmodel.allAddressesSelected</span></span>
+<span id="L90"><span class="lineNum">      90</span>              :                                   ? 'Selecione uma sugestão de endereço para cada campo'</span>
+<span id="L91"><span class="lineNum">      91</span> <span class="tlaGNC">           8 :                                   : _viewmodel.addressControllers.length &gt;</span></span>
+<span id="L92"><span class="lineNum">      92</span>              :                                           RoutesFormViewmodel.minimumAddresses</span>
+<span id="L93"><span class="lineNum">      93</span>              :                                       ? 'Preencha todos os endereços para continuar'</span>
+<span id="L94"><span class="lineNum">      94</span>              :                                       : 'Preencha os 3 endereços para continuar',</span>
+<span id="L95"><span class="lineNum">      95</span> <span class="tlaGNC">           2 :                           style: AppTypography.caption,</span></span>
+<span id="L96"><span class="lineNum">      96</span>              :                           textAlign: TextAlign.center,</span>
+<span id="L97"><span class="lineNum">      97</span>              :                         ),</span>
+<span id="L98"><span class="lineNum">      98</span>              :                       ],</span>
+<span id="L99"><span class="lineNum">      99</span>              :                     ],</span>
+<span id="L100"><span class="lineNum">     100</span>              :                   ),</span>
+<span id="L101"><span class="lineNum">     101</span>              :                 );</span>
+<span id="L102"><span class="lineNum">     102</span>              :               },</span>
+<span id="L103"><span class="lineNum">     103</span>              :             );</span>
+<span id="L104"><span class="lineNum">     104</span>              :           },</span>
+<span id="L105"><span class="lineNum">     105</span>              :         ),</span>
+<span id="L106"><span class="lineNum">     106</span>              :       ),</span>
+<span id="L107"><span class="lineNum">     107</span>              :     );</span>
+<span id="L108"><span class="lineNum">     108</span>              :   }</span>
+<span id="L109"><span class="lineNum">     109</span>              : </span>
+<span id="L110"><span class="lineNum">     110</span>              :   /// Campos de endereço A/B/C..., com `space-2` entre eles.</span>
+<span id="L111"><span class="lineNum">     111</span> <span class="tlaGNC">           2 :   List&lt;Widget&gt; _buildAddressFields() {</span></span>
+<span id="L112"><span class="lineNum">     112</span> <span class="tlaGNC">           4 :     final controllers = _viewmodel.addressControllers;</span></span>
+<span id="L113"><span class="lineNum">     113</span> <span class="tlaGNC">           2 :     return [</span></span>
+<span id="L114"><span class="lineNum">     114</span> <span class="tlaGNC">           8 :       for (var index = 0; index &lt; controllers.length; index++) ...[</span></span>
+<span id="L115"><span class="lineNum">     115</span> <span class="tlaGNC">           4 :         if (index &gt; 0) const SizedBox(height: AppSpacing.space2),</span></span>
+<span id="L116"><span class="lineNum">     116</span> <span class="tlaGNC">           2 :         AddressAutocompleteField(</span></span>
+<span id="L117"><span class="lineNum">     117</span>              :           // Key com a geração do form: ao resetar, os campos são remontados</span>
+<span id="L118"><span class="lineNum">     118</span>              :           // e recomeçam sem histórico de interação (sem vermelho pós-reset).</span>
+<span id="L119"><span class="lineNum">     119</span> <span class="tlaGNC">           8 :           key: ValueKey('address_${_viewmodel.formEpoch}_$index'),</span></span>
+<span id="L120"><span class="lineNum">     120</span> <span class="tlaGNC">           2 :           controller: controllers[index],</span></span>
+<span id="L121"><span class="lineNum">     121</span> <span class="tlaGNC">           4 :           validator: _viewmodel.validateAddress,</span></span>
+<span id="L122"><span class="lineNum">     122</span> <span class="tlaGNC">           4 :           hintText: 'Ponto ${_labelFor(index)}',</span></span>
+<span id="L123"><span class="lineNum">     123</span>              :           // Autocomplete: sugestões do Google Places para este campo.</span>
+<span id="L124"><span class="lineNum">     124</span> <span class="tlaGNC">           4 :           suggestions: _viewmodel.suggestionsFor(index),</span></span>
+<span id="L125"><span class="lineNum">     125</span> <span class="tlaGNC">           3 :           onChanged: (value) =&gt; _viewmodel.onAddressChanged(index, value),</span></span>
+<span id="L126"><span class="lineNum">     126</span> <span class="tlaGNC">           1 :           onSelected: (suggestion) {</span></span>
+<span id="L127"><span class="lineNum">     127</span> <span class="tlaGNC">           3 :             FocusScope.of(context).unfocus();</span></span>
+<span id="L128"><span class="lineNum">     128</span> <span class="tlaGNC">           2 :             _viewmodel.selectSuggestion(index, suggestion);</span></span>
+<span id="L129"><span class="lineNum">     129</span>              :           },</span>
+<span id="L130"><span class="lineNum">     130</span>              :           // Remove pontos adicionados; o mínimo A/B/C é fixo.</span>
+<span id="L131"><span class="lineNum">     131</span> <span class="tlaGNC">           4 :           removable: _viewmodel.canRemoveAddressField,</span></span>
+<span id="L132"><span class="lineNum">     132</span> <span class="tlaGNC">           3 :           onRemove: () =&gt; _viewmodel.removeAddressField(index),</span></span>
+<span id="L133"><span class="lineNum">     133</span>              :         ),</span>
+<span id="L134"><span class="lineNum">     134</span>              :       ],</span>
+<span id="L135"><span class="lineNum">     135</span>              :     ];</span>
+<span id="L136"><span class="lineNum">     136</span>              :   }</span>
+<span id="L137"><span class="lineNum">     137</span>              : </span>
+<span id="L138"><span class="lineNum">     138</span>              :   /// Valida todos os campos via [Form] antes de confirmar a rota.</span>
+<span id="L139"><span class="lineNum">     139</span>              :   ///</span>
+<span id="L140"><span class="lineNum">     140</span>              :   /// O botão já é desabilitado enquanto houver campo vazio ([canConfirm]);</span>
+<span id="L141"><span class="lineNum">     141</span>              :   /// esta validação é a rede de segurança pedida pelos validadores do form.</span>
+<span id="L142"><span class="lineNum">     142</span>              :   /// Após confirmar, navega para o mapa repassando os endereços como</span>
+<span id="L143"><span class="lineNum">     143</span>              :   /// argumentos: a rota em si é calculada na **entrada do mapa**, inserindo</span>
+<span id="L144"><span class="lineNum">     144</span>              :   /// a localização do usuário como origem da requisição.</span>
+<span id="L145"><span class="lineNum">     145</span>              :   ///</span>
+<span id="L146"><span class="lineNum">     146</span>              :   /// Quando o usuário volta do mapa com o trajeto concluído (resultado</span>
+<span id="L147"><span class="lineNum">     147</span>              :   /// `true`), o formulário é limpo ([RoutesFormViewmodel.resetForm]) para o</span>
+<span id="L148"><span class="lineNum">     148</span>              :   /// próximo trajeto.</span>
+<span id="L149"><span class="lineNum">     149</span> <span class="tlaGNC">           1 :   Future&lt;void&gt; _confirmRoute() async {</span></span>
+<span id="L150"><span class="lineNum">     150</span> <span class="tlaGNC">           3 :     if (_formKey.currentState?.validate() ?? false) {</span></span>
+<span id="L151"><span class="lineNum">     151</span> <span class="tlaGNC">           2 :       final addresses = _viewmodel.collectAddresses();</span></span>
+<span id="L152"><span class="lineNum">     152</span>              :       // pushNamed sem tipo: as rotas do app são Route&lt;void&gt; — tipar como</span>
+<span id="L153"><span class="lineNum">     153</span>              :       // bool aqui quebraria o cast interno do Navigator (a rota é criada</span>
+<span id="L154"><span class="lineNum">     154</span>              :       // pelo onGenerateRoute, que devolve Route&lt;void&gt;). O resultado é</span>
+<span id="L155"><span class="lineNum">     155</span>              :       // comparado por valor (true = trajeto concluído).</span>
+<span id="L156"><span class="lineNum">     156</span> <span class="tlaGNC">           3 :       final Object? routeFinished = await Navigator.of(context).pushNamed(</span></span>
+<span id="L157"><span class="lineNum">     157</span> <span class="tlaGNC">           1 :         AppRoute.map.path,</span></span>
+<span id="L158"><span class="lineNum">     158</span>              :         arguments: addresses,</span>
+<span id="L159"><span class="lineNum">     159</span>              :       );</span>
+<span id="L160"><span class="lineNum">     160</span> <span class="tlaGNC">           1 :       if (routeFinished == true) {</span></span>
+<span id="L161"><span class="lineNum">     161</span> <span class="tlaGNC">           2 :         _viewmodel.resetForm();</span></span>
+<span id="L162"><span class="lineNum">     162</span>              :       }</span>
+<span id="L163"><span class="lineNum">     163</span>              :     }</span>
+<span id="L164"><span class="lineNum">     164</span>              :   }</span>
+<span id="L165"><span class="lineNum">     165</span>              : </span>
+<span id="L166"><span class="lineNum">     166</span>              :   /// Rótulo do ponto: A, B, C... e números após Z.</span>
+<span id="L167"><span class="lineNum">     167</span> <span class="tlaGNC">           2 :   String _labelFor(int index) {</span></span>
+<span id="L168"><span class="lineNum">     168</span> <span class="tlaGNC">           2 :     if (index &lt; 26) {</span></span>
+<span id="L169"><span class="lineNum">     169</span> <span class="tlaGNC">           6 :       return String.fromCharCode('A'.codeUnitAt(0) + index);</span></span>
+<span id="L170"><span class="lineNum">     170</span>              :     }</span>
+<span id="L171"><span class="lineNum">     171</span> <span class="tlaUNC">           0 :     return '${index + 1}';</span></span>
+<span id="L172"><span class="lineNum">     172</span>              :   }</span>
+<span id="L173"><span class="lineNum">     173</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 2.5-0</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>
