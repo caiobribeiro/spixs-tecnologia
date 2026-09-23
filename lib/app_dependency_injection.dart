@@ -23,6 +23,7 @@ import 'modules/map/domain/repository/location_repository_impl.dart';
 import 'modules/map/domain/repository/map_repository.dart';
 import 'modules/map/domain/repository/map_repository_impl.dart';
 import 'modules/map/domain/usecases/calculate_geographic_distance_use_case.dart';
+import 'modules/map/domain/usecases/detect_route_completion_use_case.dart';
 import 'modules/map/domain/usecases/detect_route_deviation_use_case.dart';
 import 'modules/map/domain/usecases/find_unvisited_stops_use_case.dart';
 import 'modules/map/domain/usecases/numbered_marker_use_case.dart';
@@ -93,6 +94,7 @@ void setupDependencyInjection() {
       getIt<NumberedMarkerUseCase>(),
       getIt<DetectRouteDeviationUseCase>(),
       getIt<FindUnvisitedStopsUseCase>(),
+      getIt<DetectRouteCompletionUseCase>(),
     ),
   );
 
@@ -114,6 +116,11 @@ void setupDependencyInjection() {
   );
   getIt.registerLazySingleton<FindUnvisitedStopsUseCase>(
     () => FindUnvisitedStopsUseCase(
+      getIt<CalculateGeographicDistanceUseCase>(),
+    ),
+  );
+  getIt.registerLazySingleton<DetectRouteCompletionUseCase>(
+    () => DetectRouteCompletionUseCase(
       getIt<CalculateGeographicDistanceUseCase>(),
     ),
   );
