@@ -11,6 +11,7 @@ import '../../domain/entity/geo_point_entity.dart';
 import '../../domain/entity/location_access_status.dart';
 import '../../domain/entity/route_entity.dart';
 import '../widgets/location_warning_card.dart';
+import '../widgets/route_recalculated_banner.dart';
 import '../widgets/start_navigation_button.dart';
 import 'map_viewmodel.dart';
 
@@ -234,6 +235,19 @@ class _MapViewState extends State<MapView> {
                       // Por cima dos demais: visível mesmo com rota anterior ainda
                       // renderizada enquanto a nova é recalculada.
                       _buildRouteLoadingOverlay(),
+                      // Banner de recálculo automático: aparece na navegação
+                      // assim que a rota é recalculada por desvio do usuário.
+                      ValueListenableBuilder<int>(
+                        valueListenable: _viewmodel.routeRecalculationCount,
+                        builder: (context, recalculationCount, _) {
+                          if (recalculationCount == 0) {
+                            return const SizedBox.shrink();
+                          }
+                          return RouteRecalculatedBanner(
+                            recalculationCount: recalculationCount,
+                          );
+                        },
+                      ),
                       // Botão "Iniciar": só aparece com rota pronta e antes de
                       // a navegação começar.
                       if (route != null && !navigating)
