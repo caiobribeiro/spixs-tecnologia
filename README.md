@@ -19,6 +19,14 @@ Vídeo curto mostrando os fluxos principais do app (bloqueio, autocomplete, rota
 
 [![Assista à demonstração](assets/youtube.png)](https://youtu.be/wA1X1o6vIKw)
 
+## Agentes
+
+Fluxo de desenvolvimento assistido por agentes (config em `.pi/agents/`):
+
+- **Orchestrator** — recebe a solicitação, produz o `spec` e coordena a sequência entre os agentes.
+- **Planner** — recebe o `spec` e produz um `plan` estruturado com tarefas, dependências e critérios de aceite.
+- **Implementer** — executa as tarefas do `plan` seguindo as regras de arquitetura do repositório.
+
 ## Arquitetura
 
 Segue a [arquitetura](https://docs.flutter.dev/app-architecture) sugerida pela Google, com separação em camadas (`presenter` / `domain` / `data`) e gerenciamento de estado nativo.
