@@ -13,6 +13,12 @@ endereços e navegação com recálculo dinâmico de rota.
 - **Navegação com GPS** — botão "Iniciar" e rastreio contínuo da posição via stream de localização.
 - **Recálculo dinâmico** — detecta desvio da rota (threshold de distância), recalcula com os pontos não visitados, reotimiza a ordem e indica visualmente o recálculo.
 
+## Demonstração
+
+Vídeo curto mostrando os fluxos principais do app (bloqueio, autocomplete, rota otimizada e recálculo com desvio):
+
+[![Assista à demonstração](assets/youtube.png)](https://youtu.be/wA1X1o6vIKw)
+
 ## Arquitetura
 
 Segue a [arquitetura](https://docs.flutter.dev/app-architecture) sugerida pela Google, com separação em camadas (`presenter` / `domain` / `data`) e gerenciamento de estado nativo.
