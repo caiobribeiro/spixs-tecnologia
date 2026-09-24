@@ -1,0 +1,134 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - map/domain/entity/route_entity.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory map/domain/entity">map/domain/entity</a> - route_entity.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryLo">20.0&nbsp;%</td>
+            <td class="headerCovTableEntry">10</td>
+            <td class="headerCovTableEntry">2</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-09-23 20:04:55</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : import '../../../../coverage/html/map/domain/entity/geo_point_entity.dart';</span>
+<span id="L2"><span class="lineNum">       2</span>              : import '../../../../coverage/html/map/domain/entity/route_waypoint_entity.dart';</span>
+<span id="L3"><span class="lineNum">       3</span>              : </span>
+<span id="L4"><span class="lineNum">       4</span>              : /// A route computed by the Google Routes API (`computeRoutes`).</span>
+<span id="L5"><span class="lineNum">       5</span>              : ///</span>
+<span id="L6"><span class="lineNum">       6</span>              : /// The single source of truth (SSOT) of the computed route lives in</span>
+<span id="L7"><span class="lineNum">       7</span>              : /// `MapRepositoryImpl`; this entity is the domain representation that the</span>
+<span id="L8"><span class="lineNum">       8</span>              : /// map screen consumes (polyline, waypoints and totals).</span>
+<span id="L9"><span class="lineNum">       9</span>              : class RouteEntity {</span>
+<span id="L10"><span class="lineNum">      10</span> <span class="tlaGNC">           2 :   const RouteEntity({</span></span>
+<span id="L11"><span class="lineNum">      11</span>              :     required this.waypoints,</span>
+<span id="L12"><span class="lineNum">      12</span>              :     required this.polylinePoints,</span>
+<span id="L13"><span class="lineNum">      13</span>              :     required this.distanceMeters,</span>
+<span id="L14"><span class="lineNum">      14</span>              :     required this.durationSeconds,</span>
+<span id="L15"><span class="lineNum">      15</span>              :     required this.optimizedIntermediateWaypointIndex,</span>
+<span id="L16"><span class="lineNum">      16</span>              :     this.userOrigin,</span>
+<span id="L17"><span class="lineNum">      17</span>              :   });</span>
+<span id="L18"><span class="lineNum">      18</span>              : </span>
+<span id="L19"><span class="lineNum">      19</span>              :   /// Stops in the order the route visits them</span>
+<span id="L20"><span class="lineNum">      20</span>              :   /// (origin → intermediate stops → destination).</span>
+<span id="L21"><span class="lineNum">      21</span>              :   final List&lt;RouteWaypointEntity&gt; waypoints;</span>
+<span id="L22"><span class="lineNum">      22</span>              : </span>
+<span id="L23"><span class="lineNum">      23</span>              :   /// Decoded polyline describing the route geometry.</span>
+<span id="L24"><span class="lineNum">      24</span>              :   final List&lt;GeoPointEntity&gt; polylinePoints;</span>
+<span id="L25"><span class="lineNum">      25</span>              : </span>
+<span id="L26"><span class="lineNum">      26</span>              :   /// Total distance of the route in meters.</span>
+<span id="L27"><span class="lineNum">      27</span>              :   final double distanceMeters;</span>
+<span id="L28"><span class="lineNum">      28</span>              : </span>
+<span id="L29"><span class="lineNum">      29</span>              :   /// Estimated total travel time in seconds.</span>
+<span id="L30"><span class="lineNum">      30</span>              :   final int durationSeconds;</span>
+<span id="L31"><span class="lineNum">      31</span>              : </span>
+<span id="L32"><span class="lineNum">      32</span>              :   /// Order the API applied to the intermediate waypoints, as indexes over</span>
+<span id="L33"><span class="lineNum">      33</span>              :   /// the request `intermediates` (only present with `optimizeWaypointOrder`).</span>
+<span id="L34"><span class="lineNum">      34</span>              :   final List&lt;int&gt; optimizedIntermediateWaypointIndex;</span>
+<span id="L35"><span class="lineNum">      35</span>              : </span>
+<span id="L36"><span class="lineNum">      36</span>              :   /// A localização do usuário usada como origem da rota, quando a rota foi</span>
+<span id="L37"><span class="lineNum">      37</span>              :   /// calculada a partir dela ([RouteRequestEntity.origin]). Quando presente,</span>
+<span id="L38"><span class="lineNum">      38</span>              :   /// o primeiro [waypoints] é essa localização — a tela do mapa a mostra</span>
+<span id="L39"><span class="lineNum">      39</span>              :   /// apenas com o marcador do usuário, sem marcador numerado.</span>
+<span id="L40"><span class="lineNum">      40</span>              :   final GeoPointEntity? userOrigin;</span>
+<span id="L41"><span class="lineNum">      41</span>              : </span>
+<span id="L42"><span class="lineNum">      42</span>              :   /// Whether the route starts at the user's current location.</span>
+<span id="L43"><span class="lineNum">      43</span> <span class="tlaGNC">           4 :   bool get startsFromUserLocation =&gt; userOrigin != null;</span></span>
+<span id="L44"><span class="lineNum">      44</span>              : </span>
+<span id="L45"><span class="lineNum">      45</span>              :   /// Origin stop, derived from the SSOT (first waypoint).</span>
+<span id="L46"><span class="lineNum">      46</span> <span class="tlaUNC">           0 :   GeoPointEntity get origin =&gt; waypoints.first.location;</span></span>
+<span id="L47"><span class="lineNum">      47</span>              : </span>
+<span id="L48"><span class="lineNum">      48</span>              :   /// Destination stop, derived from the SSOT (last waypoint).</span>
+<span id="L49"><span class="lineNum">      49</span> <span class="tlaUNC">           0 :   GeoPointEntity get destination =&gt; waypoints.last.location;</span></span>
+<span id="L50"><span class="lineNum">      50</span>              : </span>
+<span id="L51"><span class="lineNum">      51</span> <span class="tlaUNC">           0 :   @override</span></span>
+<span id="L52"><span class="lineNum">      52</span> <span class="tlaUNC">           0 :   String toString() =&gt;</span></span>
+<span id="L53"><span class="lineNum">      53</span> <span class="tlaUNC">           0 :       'RouteEntity(waypoints: ${waypoints.length}, '</span></span>
+<span id="L54"><span class="lineNum">      54</span> <span class="tlaUNC">           0 :       'polylinePoints: ${polylinePoints.length}, '</span></span>
+<span id="L55"><span class="lineNum">      55</span> <span class="tlaUNC">           0 :       'distanceMeters: $distanceMeters, durationSeconds: $durationSeconds, '</span></span>
+<span id="L56"><span class="lineNum">      56</span>              :       'optimizedIntermediateWaypointIndex: '</span>
+<span id="L57"><span class="lineNum">      57</span> <span class="tlaUNC">           0 :       '$optimizedIntermediateWaypointIndex, userOrigin: $userOrigin)';</span></span>
+<span id="L58"><span class="lineNum">      58</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 2.5-0</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>

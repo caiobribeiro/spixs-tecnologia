@@ -1,0 +1,107 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html lang="en">
+
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <title>LCOV - lcov.info - Users/caioberaldiribeiro/dev/projects/spixs-tecnologia/lib/spixs_tecnologia_app.dart</title>
+  <link rel="stylesheet" type="text/css" href="../../../../../../gcov.css">
+</head>
+
+<body>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="title">LCOV - code coverage report</td></tr>
+            <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+
+            <tr>
+              <td width="100%">
+                <table cellpadding=1 border=0 width="100%">
+          <tr>
+            <td width="10%" class="headerItem">Current view:</td>
+            <td width="10%" class="headerValue"><a href="../../../../../../index.html" title="Click to go to top-level">top level</a> - <a href="index.html" title="Click to go to directory /Users/caioberaldiribeiro/dev/projects/spixs-tecnologia/lib">/Users/caioberaldiribeiro/dev/projects/spixs-tecnologia/lib</a> - spixs_tecnologia_app.dart</td>
+            <td width="5%"></td>
+            <td width="5%"></td>
+            <td width="5%" class="headerCovTableHead">Coverage</td>
+            <td width="5%" class="headerCovTableHead" title="Covered + Uncovered code">Total</td>
+            <td width="5%" class="headerCovTableHead" title="Exercised code only">Hit</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test:</td>
+            <td class="headerValue">lcov.info</td>
+            <td></td>
+            <td class="headerItem">Lines:</td>
+            <td class="headerCovTableEntryMed">80.0&nbsp;%</td>
+            <td class="headerCovTableEntry">5</td>
+            <td class="headerCovTableEntry">4</td>
+          </tr>
+          <tr>
+            <td class="headerItem">Test Date:</td>
+            <td class="headerValue">2026-09-23 20:04:55</td>
+            <td></td>
+            <td class="headerItem">Functions:</td>
+            <td class="headerCovTableEntryHi">-</td>
+            <td class="headerCovTableEntry">0</td>
+            <td class="headerCovTableEntry">0</td>
+          </tr>
+                  <tr><td><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+                </table>
+              </td>
+            </tr>
+
+            <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+          </table>
+
+          <table cellpadding=0 cellspacing=0 border=0>
+            <tr>
+              <td><br></td>
+            </tr>
+            <tr>
+              <td>
+<pre class="sourceHeading">            Line data    Source code</pre>
+<pre class="source">
+<span id="L1"><span class="lineNum">       1</span>              : import 'package:flutter/material.dart';</span>
+<span id="L2"><span class="lineNum">       2</span>              : </span>
+<span id="L3"><span class="lineNum">       3</span>              : import '../../../../../../../coverage/html/Users/caioberaldiribeiro/dev/projects/spixs-tecnologia/lib/app_dependency_injection.dart';</span>
+<span id="L4"><span class="lineNum">       4</span>              : import '../../../../../../../coverage/html/Users/caioberaldiribeiro/dev/projects/spixs-tecnologia/lib/app_routes.dart';</span>
+<span id="L5"><span class="lineNum">       5</span>              : import '../../../../../../../coverage/html/Users/caioberaldiribeiro/dev/projects/spixs-tecnologia/lib/modules/core/theme/domain/repository/theme_repository.dart';</span>
+<span id="L6"><span class="lineNum">       6</span>              : </span>
+<span id="L7"><span class="lineNum">       7</span>              : /// Root widget of the Spixs Tecnologia app.</span>
+<span id="L8"><span class="lineNum">       8</span>              : ///</span>
+<span id="L9"><span class="lineNum">       9</span>              : /// The root app does not hold feature logic: it only composes the</span>
+<span id="L10"><span class="lineNum">      10</span>              : /// MaterialApp, applies the theme (design system Rota) and configures</span>
+<span id="L11"><span class="lineNum">      11</span>              : /// the module routes.</span>
+<span id="L12"><span class="lineNum">      12</span>              : class SpixsTecnologiaApp extends StatelessWidget {</span>
+<span id="L13"><span class="lineNum">      13</span> <span class="tlaUNC">           0 :   const SpixsTecnologiaApp({super.key, this.theme});</span></span>
+<span id="L14"><span class="lineNum">      14</span>              : </span>
+<span id="L15"><span class="lineNum">      15</span>              :   /// Tema injetado (usado por testes). Quando nulo, o tema do design</span>
+<span id="L16"><span class="lineNum">      16</span>              :   /// system é resolvido via [ThemeRepository] (single source of truth).</span>
+<span id="L17"><span class="lineNum">      17</span>              :   final ThemeData? theme;</span>
+<span id="L18"><span class="lineNum">      18</span>              : </span>
+<span id="L19"><span class="lineNum">      19</span> <span class="tlaGNC">           2 :   @override</span></span>
+<span id="L20"><span class="lineNum">      20</span>              :   Widget build(BuildContext context) {</span>
+<span id="L21"><span class="lineNum">      21</span> <span class="tlaGNC">           2 :     return MaterialApp(</span></span>
+<span id="L22"><span class="lineNum">      22</span>              :       title: 'Spixs Tecnologia',</span>
+<span id="L23"><span class="lineNum">      23</span>              :       debugShowCheckedModeBanner: false,</span>
+<span id="L24"><span class="lineNum">      24</span> <span class="tlaGNC">           8 :       theme: theme ?? getIt&lt;ThemeRepository&gt;().theme,</span></span>
+<span id="L25"><span class="lineNum">      25</span>              :       // O design system define apenas o tema claro.</span>
+<span id="L26"><span class="lineNum">      26</span>              :       themeMode: ThemeMode.light,</span>
+<span id="L27"><span class="lineNum">      27</span> <span class="tlaGNC">           2 :       initialRoute: AppRoute.home.path,</span></span>
+<span id="L28"><span class="lineNum">      28</span>              :       onGenerateRoute: AppRoutes.onGenerateRoute,</span>
+<span id="L29"><span class="lineNum">      29</span>              :     );</span>
+<span id="L30"><span class="lineNum">      30</span>              :   }</span>
+<span id="L31"><span class="lineNum">      31</span>              : }</span>
+        </pre>
+              </td>
+            </tr>
+          </table>
+          <br>
+
+          <table width="100%" border=0 cellspacing=0 cellpadding=0>
+            <tr><td class="ruler"><img src="../../../../../../glass.png" width=3 height=3 alt=""></td></tr>
+            <tr><td class="versionInfo">Generated by: <a href="https://github.com/linux-test-project/lcov" target="_parent">LCOV version 2.5-0</a></td></tr>
+          </table>
+          <br>
+
+</body>
+</html>
